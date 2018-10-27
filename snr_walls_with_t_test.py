@@ -2,15 +2,22 @@
 """
 Created on Sun Jul 29 21:45:30 2018
 
-@author: Wanting Huang, Bernd Porr
+(C) 2018 Wanting Huang <172258368@qq.com>
+(C) 2018 Bernd Porr <bernd.porr@glasgow.ac.uk>
+
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
 """
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as signal
 import math as math
-#help(signal.lfilter)
 
 import scipy.stats as stats
+
+# Directory of the dataset (http://researchdata.gla.ac.uk/676/):
+global dataset676dir
+dataset676dir = "../dataset_676"
 
 class NoiseWall:
 
@@ -21,8 +28,9 @@ class NoiseWall:
         self.pureEEGVar = 0
         for f in np.arange(band_low,band_high,1.0):
             p = -11.5 - f*0.02
-#            if ((f>7) and (f<13)):
-#                p = p + 1
+            if ((f>7) and (f<13)):
+                # alpha peak
+                p = p + 1
             power_density = 10**p
             self.pureEEGVar = self.pureEEGVar + power_density
         #print("Pure EEG variance is %e" % self.pureEEGVar)
@@ -169,13 +177,13 @@ class NoiseWall:
 def calcNoiseWall(subj,experiment,band_low=0,band_high=0):
     
     subj = "%02d" % subj
-    criterion=np.loadtxt("../experiment_data/subj"+subj+"/"+"all_exp_ok.dat", dtype=bytes).astype(str)
+    criterion=np.loadtxt(dataset676dir+"/experiment_data/subj"+subj+"/"+"all_exp_ok.dat", dtype=bytes).astype(str)
     #print(criterion)
     if criterion == 'False':
         return 0
     else:
         noiseWall = NoiseWall()
-        noiseWall.loadDataFromFile("../experiment_data/subj"+subj+"/"+experiment+"/")
+        noiseWall.loadDataFromFile(dataset676dir+"/experiment_data/subj"+subj+"/"+experiment+"/")
         noiseWall.filterData(band_low,band_high)
         #noiseWall.plotData()
         noiseWall.calcNoiseVarRelaxed()
