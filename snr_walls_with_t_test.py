@@ -21,7 +21,9 @@ dataset676dir = "../dataset_676"
 
 class NoiseWall:
 
-    def generatePureEEGVariance(self,band_low = 0,band_high = 0):
+    ## generate EEG power from a paralysed persion in a certain
+    ## frequency band
+    def generateParalysedEEGVariance(self,band_low = 0,band_high = 0):
         ## from paper
         if (band_high == 0):
             band_high = self.fs/2
@@ -33,8 +35,10 @@ class NoiseWall:
                 p = p + 1
             power_density = 10**p
             self.pureEEGVar = self.pureEEGVar + power_density
-        #print("Pure EEG variance is %e" % self.pureEEGVar)
+        
+        #print("Paralysed EEG variance is %e" % self.pureEEGVar)
 
+    ## Loads the data from the database
     def loadDataFromFile(self,subdir):
 
         self.data=np.loadtxt(subdir+"emgeeg.dat")
@@ -55,8 +59,9 @@ class NoiseWall:
         self.T=1/self.fs
         self.t=np.arange(0,self.T*len(self.eeg),self.T)
 
+    ## Filters out known powerline interference
     def filterData(self,band_low=0,band_high=0):
-        # smooth it
+        # smooth it at 100Hz cutoff
         bLP,aLP = signal.butter(4,100/self.fs*2)
         self.eeg = signal.lfilter(bLP,aLP,self.eeg);
 
@@ -85,93 +90,59 @@ class NoiseWall:
             self.eeg = signal.lfilter(bfilt1hz,afilt10hz,self.eeg)
         #FILTER COMPLETE
 
-        ## generate our pure EEG power
-        self.generatePureEEGVariance(band_low,band_high)
+        self.generateParalysedEEGVariance(band_low,band_high)
 
-    def plotData(self):
-        plt.figure(1)
-        plt.title("eeg signal in time domain")
-        plt.xlabel("time(s)")
-        plt.ylabel("Amplitude")
-        plt.plot(self.t,self.eeg) #TIME DOMAIN
-        
-
-        #plt.figure(11)
-        #plt.title("switch")
-        #plt.xlabel("time(s)")
-        #plt.ylabel("Amplitude")
-        #plt.plot(t,trigger)
-
+    #noise variance without an artefact / activity
     def calcNoiseVarRelaxed(self):
         dt=self.zero_data-self.zero_video
         t1=int(self.fs*(self.relaxed[0]+dt))
         t2=int(self.fs*(self.relaxed[1]+dt))
         yRelaxed=self.eeg[t1:t2]
-        #xRelaxed=np.arange((self.relaxed[0]+dt),(self.relaxed[1]+dt),self.T)
-        self.relaxedPower=abs(np.var(yRelaxed)-self.pureEEGVar)  #noise variance(no activity happens)
-
-            
-        #print(self.relaxedPower)
-
+        relaxedPower=np.var(yRelaxed) - self.pureEEGVar
+        if (relaxedPower < 0):
+            return 0
+        return relaxedPower
+    
+    #noise variance with artefacts / activity
     def calcNoiseVarArtefact(self):
-        #ARTEFACTS ANNOTATION
+        #ARTEFACTS beginning / stop
         tbeginVideo=self.artefact[:,0]
         tendVideo=self.artefact[:,1]
         dt=self.zero_data-self.zero_video
         tbegin=tbeginVideo+dt
         tend=tendVideo+dt
-        #print(dbegin)
-        #print(dend)
-        self.sigma=[]
+        artefactPowerList=[]
 
         for i in range(len(tbegin)):
             t1=tbegin[i]
             t2=tend[i]
             t1=int(self.fs*t1)
             t2=int(self.fs*t2)
-            #l=t2-t1
-            #print(a,b,l)
-            yArtefact=self.eeg[t1:t2]
-            #   x=np.arange(a,b,T)
-            artefactPower=abs(np.var(yArtefact)-self.pureEEGVar)     #variance of noise when activity happens
+            signalWithArtefact=self.eeg[t1:t2]
+            artefactPower = np.var(signalWithArtefact) - self.pureEEGVar
+            artefactPowerList.append(artefactPower)
 
-            if artefactPower < 0 :
-                artefactPower = 10**-12
+        averageArtefactPower = np.mean(artefactPowerList)
+        if (averageArtefactPower < 0):
+            return 0
+        return averageArtefactPower
 
-            #print(artefactPower)    
-            self.sigma.append(artefactPower) #Noise variance array
-            #print(self.sigma)
+    def calcRho(self):
+        noiseVarArtefact = self.calcNoiseVarArtefact()
+        noiseVarRelaxed = self.calcNoiseVarRelaxed()
+        rho = math.sqrt(noiseVarArtefact / noiseVarRelaxed)
+        return rho
    
     def calcNoiseWall(self):
-        #UNCERTAINTY OF NOISE POWER
-        
-        #Calculation of average noise power of activity
-        noiseSum=0
-        
-        for i in range(0,len(self.sigma)):
-            noiseSum+=self.sigma[i] #SUMofNoisePower
-            
-        self.noiseAverage=noiseSum/(len(self.sigma)+1)#Average of Noise Power
-       # print(self.noiseAverage)
-       # print(self.relaxedPower)
-        self.p=math.sqrt(self.noiseAverage/self.relaxedPower)#derive ρ by two noise power
-        SNRwall=10 * math.log10(abs(self.p-1/self.p))        
-        
+        p = self.calcRho()
+        SNRwall = 10 * math.log10(p - 1/p)
         return SNRwall
     
-    def calcNoiseUncertainty(self):
-        uncertainty=self.noiseAverage-self.relaxedPower
-        uncertainty=10 * math.log10(abs(uncertainty))   
-        return uncertainty
-    
-
-    
     def calcSNR(self):
-        self.NoiseVariance=self.noiseAverage/self.p
-        SNR=self.pureEEGVar/self.NoiseVariance
-        SNR=10 * math.log10(abs(SNR)) 
+        noiseVariance = self.calcNoiseVarArtefact() / self.calcRho()
+        SNR= self.pureEEGVar / noiseVariance
+        SNR= 10 * math.log10(SNR)
         return SNR   #nominal noise variance of signal
-    
     
     
 def calcNoiseWall(subj,experiment,band_low=0,band_high=0):
