@@ -19,7 +19,23 @@ import scipy.stats as stats
 global dataset676dir
 dataset676dir = "../dataset_676"
 
+class NoiseWallException(Exception):
+    pass
+
 class NoiseWall:
+
+    DATA_INVALID = "Data invalid"
+    MIN_VAR_NEG = "Relaxed power larger than artefact signal power"
+    MAX_VAR_NEG = "Artefact power less than pure EEG power"
+    MIN_VAR_LARGER_THAN_MAX_VAR = "Relaxed power less than pure EEG power"
+
+    def __init__(self,subj,experiment):
+        s = "%02d" % subj
+        d = np.loadtxt(dataset676dir+"/experiment_data/subj"+s+"/"+"all_exp_ok.dat", dtype=bytes).astype(str)
+        self.dataok = d in ['True','true','ok','OK']
+        self.subdir = dataset676dir+"/experiment_data/subj"+s+"/"+experiment+"/"
+        if self.dataok:
+            self.loadDataFromFile(self.subdir)
 
     ## generate EEG power from a paralysed persion in a certain
     ## frequency band
@@ -29,10 +45,7 @@ class NoiseWall:
             band_high = self.fs/2
         self.pureEEGVar = 0
         for f in np.arange(band_low,band_high,1.0):
-            p = -11.5 - f*0.02
-            if ((f>7) and (f<13)):
-                # alpha peak
-                p = p + 1
+            p = -11.75 - f*0.02
             power_density = 10**p
             self.pureEEGVar = self.pureEEGVar + power_density
         
@@ -93,25 +106,24 @@ class NoiseWall:
         self.generateParalysedEEGVariance(band_low,band_high)
 
     #noise variance without an artefact / activity
-    def calcNoiseVarRelaxed(self):
+    def calcNoiseVarMin(self):
         dt=self.zero_data-self.zero_video
         t1=int(self.fs*(self.relaxed[0]+dt))
         t2=int(self.fs*(self.relaxed[1]+dt))
-        yRelaxed=self.eeg[t1:t2]
-        relaxedPower=np.var(yRelaxed) - self.pureEEGVar
-        if (relaxedPower < 0):
-            return 0
-        return relaxedPower
+        yMin=self.eeg[t1:t2]
+        self.noiseVarMin=np.var(yMin) - self.pureEEGVar
+        if (self.noiseVarMin < 0):
+            raise NoiseWallException(self.MIN_VAR_NEG)
     
     #noise variance with artefacts / activity
-    def calcNoiseVarArtefact(self):
+    def calcNoiseVarMax(self):
         #ARTEFACTS beginning / stop
         tbeginVideo=self.artefact[:,0]
         tendVideo=self.artefact[:,1]
         dt=self.zero_data-self.zero_video
         tbegin=tbeginVideo+dt
         tend=tendVideo+dt
-        artefactPowerList=[]
+        maxVarList=[]
 
         for i in range(len(tbegin)):
             t1=tbegin[i]
@@ -119,107 +131,106 @@ class NoiseWall:
             t1=int(self.fs*t1)
             t2=int(self.fs*t2)
             signalWithArtefact=self.eeg[t1:t2]
-            artefactPower = np.var(signalWithArtefact) - self.pureEEGVar
-            artefactPowerList.append(artefactPower)
+            artefactVar = np.var(signalWithArtefact) - self.pureEEGVar
+            maxVarList.append(artefactVar)
 
-        averageArtefactPower = np.mean(artefactPowerList)
-        if (averageArtefactPower < 0):
-            return 0
-        return averageArtefactPower
+        self.noiseVarMax = np.mean(maxVarList)
+        if (self.noiseVarMax < 0):
+            raise NoiseWallException(self.ARTEFACT_VAR_NEG)
 
     def calcRho(self):
-        noiseVarArtefact = self.calcNoiseVarArtefact()
-        noiseVarRelaxed = self.calcNoiseVarRelaxed()
-        rho = math.sqrt(noiseVarArtefact / noiseVarRelaxed)
-        return rho
+        self.rho = np.sqrt( self.noiseVarMax / self.noiseVarMin )
    
     def calcNoiseWall(self):
-        p = self.calcRho()
-        SNRwall = 10 * math.log10(p - 1/p)
-        return SNRwall
+        if (self.rho < 1):
+            raise NoiseWallException(self.MIN_VAR_LARGER_THAN_MAX_VAR)
+        self.SNRwall = 10 * math.log10(self.rho - 1/self.rho)
     
     def calcSNR(self):
-        noiseVariance = self.calcNoiseVarArtefact() / self.calcRho()
-        SNR= self.pureEEGVar / noiseVariance
-        SNR= 10 * math.log10(SNR)
-        return SNR   #nominal noise variance of signal
+        noiseVariance = (self.noiseVarMin + self.noiseVarMax) / 2
+        self.SNR= 10 * math.log10( self.pureEEGVar / noiseVariance )
+
+    def doAllCalcs(self):
+        if not self.dataok:
+            raise NoiseWallException(self.DATA_INVALID)
+        self.calcNoiseVarMin()
+        self.calcNoiseVarMax()
+        self.calcRho()
+        self.calcNoiseWall()
+        self.calcSNR()
+
+    def getSNRwall(self):
+        return self.SNRwall
+
+    def getSNR(self):
+        return self.SNR
     
     
-def calcNoiseWall(subj,experiment,band_low=0,band_high=0):
-    
-    subj = "%02d" % subj
-    criterion=np.loadtxt(dataset676dir+"/experiment_data/subj"+subj+"/"+"all_exp_ok.dat", dtype=bytes).astype(str)
-    #print(criterion)
-    if criterion == 'False':
-        return 0
-    else:
-        noiseWall = NoiseWall()
-        noiseWall.loadDataFromFile(dataset676dir+"/experiment_data/subj"+subj+"/"+experiment+"/")
-        noiseWall.filterData(band_low,band_high)
-        #noiseWall.plotData()
-        noiseWall.calcNoiseVarRelaxed()
-        noiseWall.calcNoiseVarArtefact()
-        return (noiseWall.calcNoiseWall(),noiseWall.calcSNR())
 
-
-
-    
-experiments = ["lie_relax","blink","eyescrunching","raisingeyebrows","jaw","readingsitting","readinglieing","flow","sudoku","wordsearch","templerun"]
-Num=0
-wall_mean=[]
-wall_stddev=[]
-snr_mean=[]
-snr_stddev=[]
-pval = []
-pval_for_significance = 0.05
-for e in experiments:
-    print("\n"+e)
-    wall_tmp = []
-    snr_tmp = []
-    for subj in range(2,28):
-        wall = calcNoiseWall(subj,e)
-
-        if not (wall == 0):
-            print("subject%02d: Noise wall of %s = %f dB" % (subj,e,wall[0]))
-            print("subject%02d: SNR of %s = %f dB" % (subj,e,wall[1]))
-            wall_tmp.append(wall[0])
-            snr_tmp.append(wall[1])
-
-    wall_mean.append(np.mean(wall_tmp))
-    wall_stddev.append(np.std(wall_tmp))
-    snr_mean.append(np.mean(snr_tmp))
-    snr_stddev.append(np.std(snr_tmp))
-    t, p = stats.ttest_rel(snr_tmp, wall_tmp)
-    # one sided: p is half
-    p = p / 2
-    # we reject anything where the SNR is less than the Wall
-    if (t<0):
-        p = 1
-    print("Experiment %s has p=%f, t=%f" % (e,p,t))
-    pval.append(p)
+def doStats(low_f,high_f):
+    experiments = ["lie_relax","blink","eyescrunching","raisingeyebrows","jaw","readingsitting","readinglieing","flow","sudoku","wordsearch","templerun"]
+    wall_mean=[]
+    wall_stddev=[]
+    snr_mean=[]
+    snr_stddev=[]
+    pval = []
+    pval_for_significance = 0.05
+    for e in experiments:
+        print("\n"+e)
+        wall_tmp = []
+        snr_tmp = []
+        for subj in range(2,28):
+            noiseWall = NoiseWall(subj,e)
+            if noiseWall.dataok:
+                noiseWall.filterData(low_f,high_f)
+                try:
+                    noiseWall.doAllCalcs()
+                    print("Noise wall of subj %s = %f dB" % (subj,noiseWall.getSNRwall()))
+                    print("SNR of subj %s = %f dB" % (subj,noiseWall.getSNR()))
+                    wall_tmp.append(noiseWall.getSNRwall())
+                    snr_tmp.append(noiseWall.getSNR())
+                except NoiseWallException as err:
+                    print("subj"+str(subj)+"="+str(err))
+        wall_mean.append(np.mean(wall_tmp))
+        wall_stddev.append(np.std(wall_tmp))
+        snr_mean.append(np.mean(snr_tmp))
+        snr_stddev.append(np.std(snr_tmp))
+        t, p = stats.ttest_rel(snr_tmp, wall_tmp)
+        # one sided: p is half
+        p = p / 2
+        # we reject anything where the SNR is less than the Wall
+        if (t<0):
+            p = 1
+            print("Experiment %s has p=%f, t=%f" % (e,p,t))
+        pval.append(p)
         
 
-index = np.arange(len(experiments))
-height = 0.35
-fig, ax = plt.subplots()
-baseline = 20
-xleft = np.ones(len(experiments)) * -baseline
-wall_mean_shift = [x+baseline for x in wall_mean]
-snr_mean_shift = [x+baseline for x in snr_mean]
-rects_wall = ax.barh(index+height*1.1,wall_mean_shift,height,left=xleft,align='edge',color='b',xerr=wall_stddev)
-rects_snr = ax.barh(index,snr_mean_shift,height,color='y',left=xleft,align='edge',xerr=snr_stddev)
-ax.set_xlabel('dB')
-ax.set_title('SNR vs SNR wall')
-ax.set_yticks(index + height / 2)
-ax.set_yticklabels(experiments)
-ax.set_xlim([-20,20])
-ax.legend((rects_wall, rects_snr), ('Wall', 'SNR'))
-for i in range(len(experiments)):
-    s = ""     
-    if (pval[i] < pval_for_significance):
-        s = s + "* p=%0.03f" % pval[i]
-    else:
-        s = s + " (p=%0.03f)" % pval[i]
-    xpos = max([wall_mean[i],snr_mean[i]]) + 1
-    ax.text(xpos, i + .25, s, color='blue', fontweight='bold')
-plt.show()
+    index = np.arange(len(experiments))
+    height = 0.35
+    fig, ax = plt.subplots()
+    baseline = 20
+    xleft = np.ones(len(experiments)) * -baseline
+    wall_mean_shift = [x+baseline for x in wall_mean]
+    snr_mean_shift = [x+baseline for x in snr_mean]
+    rects_wall = ax.barh(index+height*1.1,wall_mean_shift,height,left=xleft,align='edge',color='b',xerr=wall_stddev)
+    rects_snr = ax.barh(index,snr_mean_shift,height,color='y',left=xleft,align='edge',xerr=snr_stddev)
+    ax.set_xlabel('dB')
+    ax.set_title('SNR vs SNR wall')
+    ax.set_yticks(index + height / 2)
+    ax.set_yticklabels(experiments)
+    ax.set_xlim([-20,20])
+    ax.legend((rects_wall, rects_snr), ('Wall', 'SNR'))
+    for i in range(len(experiments)):
+        s = ""     
+        if (pval[i] < pval_for_significance):
+            s = s + "* p=%0.03f" % pval[i]
+        else:
+            s = s + " (p=%0.03f)" % pval[i]
+        xpos = max([wall_mean[i],snr_mean[i]]) + 1
+        ax.text(xpos, i + .25, s, color='blue', fontweight='bold')
+    plt.show()
+#
+
+
+
+doStats(4,35)
