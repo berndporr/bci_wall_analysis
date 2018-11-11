@@ -25,8 +25,8 @@ class NoiseWallException(Exception):
 class NoiseWall:
 
     DATA_INVALID = "Data invalid"
-    MIN_VAR_NEG = "Min variance less than pure EEG power"
-    MAX_VAR_NEG = "Max variance less than pure EEG power"
+    MIN_VAR_NEG = "Min variance less than pure EEG var"
+    MAX_VAR_NEG = "Max variance less than pure EEG var"
     MIN_VAR_LARGER_THAN_MAX_VAR = "Min variance larger than max variance"
 
     def __init__(self,subj,experiment):
@@ -134,13 +134,13 @@ class NoiseWall:
             artefactVar = np.var(signalWithArtefact) - self.pureEEGVar
             maxVarList.append(artefactVar)
 
-        self.noiseVarMax = np.mean(maxVarList)
+        self.noiseVarMax = np.median(maxVarList)
         if (self.noiseVarMax < 0):
             raise NoiseWallException(self.ARTEFACT_VAR_NEG)
 
     def calcRho(self):
         self.rho = np.sqrt( self.noiseVarMax / self.noiseVarMin )
-   
+
     def calcNoiseWall(self):
         if (self.rho < 1):
             raise NoiseWallException(self.MIN_VAR_LARGER_THAN_MAX_VAR)
@@ -164,8 +164,7 @@ class NoiseWall:
 
     def getSNR(self):
         return self.SNR
-    
-    
+
 
 def doStats(low_f,high_f):
     experiments = ["lie_relax","blink","eyescrunching","raisingeyebrows","jaw","readingsitting","readinglieing","flow","sudoku","wordsearch","templerun"]
@@ -195,7 +194,7 @@ def doStats(low_f,high_f):
         wall_stddev.append(np.std(wall_tmp))
         snr_mean.append(np.mean(snr_tmp))
         snr_stddev.append(np.std(snr_tmp))
-        t, p = stats.mannwhitneyu(wall_tmp, snr_tmp, alternative = 'greater')
+        t, p = stats.ttest_rel(snr_tmp, wall_tmp)
         print("Experiment %s has p=%f, t=%f" % (e,p,t))
         pval.append(p)
         
