@@ -25,9 +25,9 @@ class NoiseWallException(Exception):
 class NoiseWall:
 
     DATA_INVALID = "Data invalid"
-    MIN_VAR_NEG = "Relaxed power larger than artefact signal power"
-    MAX_VAR_NEG = "Artefact power less than pure EEG power"
-    MIN_VAR_LARGER_THAN_MAX_VAR = "Relaxed power less than pure EEG power"
+    MIN_VAR_NEG = "Min variance less than pure EEG power"
+    MAX_VAR_NEG = "Max variance less than pure EEG power"
+    MIN_VAR_LARGER_THAN_MAX_VAR = "Min variance larger than max variance"
 
     def __init__(self,subj,experiment):
         s = "%02d" % subj
@@ -195,13 +195,8 @@ def doStats(low_f,high_f):
         wall_stddev.append(np.std(wall_tmp))
         snr_mean.append(np.mean(snr_tmp))
         snr_stddev.append(np.std(snr_tmp))
-        t, p = stats.ttest_rel(snr_tmp, wall_tmp)
-        # one sided: p is half
-        p = p / 2
-        # we reject anything where the SNR is less than the Wall
-        if (t<0):
-            p = 1
-            print("Experiment %s has p=%f, t=%f" % (e,p,t))
+        t, p = stats.mannwhitneyu(wall_tmp, snr_tmp, alternative = 'greater')
+        print("Experiment %s has p=%f, t=%f" % (e,p,t))
         pval.append(p)
         
 
@@ -222,7 +217,7 @@ def doStats(low_f,high_f):
     ax.legend((rects_wall, rects_snr), ('Wall', 'SNR'))
     for i in range(len(experiments)):
         s = ""     
-        if (pval[i] < pval_for_significance):
+        if (pval[i] > pval_for_significance):
             s = s + "* p=%0.03f" % pval[i]
         else:
             s = s + " (p=%0.03f)" % pval[i]
