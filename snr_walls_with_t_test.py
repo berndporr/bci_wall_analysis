@@ -45,8 +45,8 @@ class NoiseWall:
             band_high = self.fs/2
         self.pureEEGVar = 0
         for f in np.arange(band_low,band_high,1.0):
-            p = -11.75 - f*0.02
-            power_density = 10**p
+            p = -11.5 - f*0.02
+            power_density = (10**p) / 1.5
             self.pureEEGVar = self.pureEEGVar + power_density
         
         #print("Paralysed EEG variance is %e" % self.pureEEGVar)
@@ -74,8 +74,8 @@ class NoiseWall:
 
     ## Filters out known powerline interference
     def filterData(self,band_low=0,band_high=0):
-        # smooth it at 100Hz cutoff
-        bLP,aLP = signal.butter(4,100/self.fs*2)
+        # smooth it at 50Hz cutoff
+        bLP,aLP = signal.butter(4,50/self.fs*2)
         self.eeg = signal.lfilter(bLP,aLP,self.eeg);
 
         ## highpass at 1Hz and 50Hz notch
@@ -84,12 +84,6 @@ class NoiseWall:
         self.eeg = signal.lfilter(bhp,ahp,signal.lfilter(bfilt50hz,afilt50hz,self.eeg));
         #emg_clean = signal.lfilter(bhp,ahp,signal.lfilter(bfilt50hz,afilt50hz,emg));
         #trigger_clean = signal.lfilter(bhp,ahp,signal.lfilter(bfilt50hz,afilt50hz,trigger));
-
-        ## strange 80Hz interference
-        bfilt80hz,afilt80hz = signal.butter(2,[78/self.fs*2,82/self.fs*2],'stop')
-        self.eeg = signal.lfilter(bfilt80hz,afilt80hz,self.eeg);
-        #emg_clean = signal.lfilter(bfilt80hz,afilt80hz,emg_clean);
-        #trigger_clean = signal.lfilter(bfilt80hz,afilt80hz,trigger_clean);
 
         ## strange 25 Hz interference
         bfilt25hz,afilt25hz = signal.butter(2,[24/self.fs*2,26/self.fs*2],'stop')
@@ -136,7 +130,7 @@ class NoiseWall:
 
         self.noiseVarMax = np.median(maxVarList)
         if (self.noiseVarMax < 0):
-            raise NoiseWallException(self.ARTEFACT_VAR_NEG)
+            raise NoiseWallException(self.MAX_VAR_NEG)
 
     def calcRho(self):
         self.rho = np.sqrt( self.noiseVarMax / self.noiseVarMin )
@@ -147,7 +141,7 @@ class NoiseWall:
         self.SNRwall = 10 * math.log10(self.rho - 1/self.rho)
     
     def calcSNR(self):
-        noiseVariance = (self.noiseVarMin + self.noiseVarMax) / 2
+        noiseVariance = self.noiseVarMin * self.rho
         self.SNR= 10 * math.log10( self.pureEEGVar / noiseVariance )
 
     def doAllCalcs(self):
@@ -215,11 +209,7 @@ def doStats(low_f,high_f):
     ax.set_xlim([-20,20])
     ax.legend((rects_wall, rects_snr), ('Wall', 'SNR'))
     for i in range(len(experiments)):
-        s = ""     
-        if (pval[i] > pval_for_significance):
-            s = s + "* p=%0.03f" % pval[i]
-        else:
-            s = s + " (p=%0.03f)" % pval[i]
+        s = " (p=%0.03f)" % pval[i]
         xpos = max([wall_mean[i],snr_mean[i]]) + 1
         ax.text(xpos, i + .25, s, color='blue', fontweight='bold')
     plt.show()
