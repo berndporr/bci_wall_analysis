@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Jul 29 21:45:30 2018
-
 (C) 2018 Wanting Huang <172258368@qq.com>
 (C) 2018 Bernd Porr <bernd.porr@glasgow.ac.uk>
 
 GNU GENERAL PUBLIC LICENSE
 Version 3, 29 June 2007
+
+This script calculates the noise walls
+of EEG recordings during different tasks.
+
+Thus, the script calculates if it possible
+at all to detect a change in EEG at all
+buried in EMG noise.
+
+The dataset used is: http://researchdata.gla.ac.uk/676
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,9 +26,15 @@ import scipy.stats as stats
 global dataset676dir
 dataset676dir = "../dataset_676"
 
+# Exception arising from the calculations
+# These arise from sanity checks and point
+# to possibly wrong/bad recordings so that they
+# can be excluded.
 class NoiseWallException(Exception):
     pass
 
+
+# Calculates the noise wall from one subject doing one experiment
 class NoiseWall:
 
     DATA_INVALID = "Data invalid"
@@ -29,6 +42,8 @@ class NoiseWall:
     MAX_VAR_NEG = "Max variance less than pure EEG var"
     MIN_VAR_LARGER_THAN_MAX_VAR = "Min variance larger than max variance"
 
+    # Constructor with subject number and experiment
+    # Loads the data if a complete dataset exists for this experiment
     def __init__(self,subj,experiment):
         s = "%02d" % subj
         d = np.loadtxt(dataset676dir+"/experiment_data/subj"+s+"/"+"all_exp_ok.dat", dtype=bytes).astype(str)
@@ -37,8 +52,8 @@ class NoiseWall:
         if self.dataok:
             self.loadDataFromFile(self.subdir)
 
-    ## generate EEG power from a paralysed persion in a certain
-    ## frequency band
+    # generate EEG power from a paralysed persion in a certain
+    # frequency band. Private function called from within.
     def generateParalysedEEGVariance(self,band_low = 0,band_high = 0):
         ## from paper
         if (band_high == 0):
@@ -46,12 +61,11 @@ class NoiseWall:
         self.pureEEGVar = 0
         for f in np.arange(band_low,band_high,1.0):
             p = -11.5 - f*0.02
-            power_density = (10**p) / 1.5
+            power_density = (10**p) / 1.4
             self.pureEEGVar = self.pureEEGVar + power_density
-        
-        #print("Paralysed EEG variance is %e" % self.pureEEGVar)
 
-    ## Loads the data from the database
+    # Loads the data from the database
+    # this is a private function and there is no need to call it
     def loadDataFromFile(self,subdir):
 
         self.data=np.loadtxt(subdir+"emgeeg.dat")
@@ -72,7 +86,8 @@ class NoiseWall:
         self.T=1/self.fs
         self.t=np.arange(0,self.T*len(self.eeg),self.T)
 
-    ## Filters out known powerline interference
+    # Filters out known powerline interference and limits the EEG
+    # to the band of interest.
     def filterData(self,band_low=0,band_high=0):
         # smooth it at 50Hz cutoff
         bLP,aLP = signal.butter(4,50/self.fs*2)
@@ -99,7 +114,8 @@ class NoiseWall:
 
         self.generateParalysedEEGVariance(band_low,band_high)
 
-    #noise variance without an artefact / activity
+    # Minimal noise variance taken from a stretch before the experiment
+    # starts.
     def calcNoiseVarMin(self):
         dt=self.zero_data-self.zero_video
         t1=int(self.fs*(self.relaxed[0]+dt))
@@ -109,7 +125,9 @@ class NoiseWall:
         if (self.noiseVarMin < 0):
             raise NoiseWallException(self.MIN_VAR_NEG)
     
-    #noise variance with artefacts / activity
+    # Maximum noise variance taken from a range of section where the
+    # variance is highest = where an artefact happens.
+    # The median of all variances is returned to elimiate outliers.
     def calcNoiseVarMax(self):
         #ARTEFACTS beginning / stop
         tbeginVideo=self.artefact[:,0]
@@ -132,18 +150,23 @@ class NoiseWall:
         if (self.noiseVarMax < 0):
             raise NoiseWallException(self.MAX_VAR_NEG)
 
+    # Calculates the noise uncertainty as the ratio between the
+    # min variance and the max variance.
     def calcRho(self):
         self.rho = np.sqrt( self.noiseVarMax / self.noiseVarMin )
 
+    # Calculates the noise wall in decibel
     def calcNoiseWall(self):
         if (self.rho < 1):
             raise NoiseWallException(self.MIN_VAR_LARGER_THAN_MAX_VAR)
         self.SNRwall = 10 * math.log10(self.rho - 1/self.rho)
-    
+
+    # Calculates the SNR in decibel
     def calcSNR(self):
         noiseVariance = self.noiseVarMin * self.rho
         self.SNR= 10 * math.log10( self.pureEEGVar / noiseVariance )
 
+    # Do all calculations in one go
     def doAllCalcs(self):
         if not self.dataok:
             raise NoiseWallException(self.DATA_INVALID)
@@ -153,9 +176,12 @@ class NoiseWall:
         self.calcNoiseWall()
         self.calcSNR()
 
+    # Returns the SNR wall. Only if the average SNR is higher EEG can
+    # be detected at all.
     def getSNRwall(self):
         return self.SNRwall
 
+    # Returns the average SNR of the signal.
     def getSNR(self):
         return self.SNR
 
@@ -188,7 +214,10 @@ def doStats(low_f,high_f):
         wall_stddev.append(np.std(wall_tmp))
         snr_mean.append(np.mean(snr_tmp))
         snr_stddev.append(np.std(snr_tmp))
+        # test how likely it is that the average SNR has hit the SNR wall
         t, p = stats.ttest_rel(snr_tmp, wall_tmp)
+        if t < 0:
+            p = 1
         print("Experiment %s has p=%f, t=%f" % (e,p,t))
         pval.append(p)
         
@@ -203,7 +232,7 @@ def doStats(low_f,high_f):
     rects_wall = ax.barh(index+height*1.1,wall_mean_shift,height,left=xleft,align='edge',color='b',xerr=wall_stddev)
     rects_snr = ax.barh(index,snr_mean_shift,height,color='y',left=xleft,align='edge',xerr=snr_stddev)
     ax.set_xlabel('dB')
-    ax.set_title('SNR vs SNR wall')
+    ax.set_title('SNR vs SNR wall, p = average SNR has hit the SNR wall')
     ax.set_yticks(index + height / 2)
     ax.set_yticklabels(experiments)
     ax.set_xlim([-20,20])
@@ -213,7 +242,7 @@ def doStats(low_f,high_f):
         xpos = max([wall_mean[i],snr_mean[i]]) + 1
         ax.text(xpos, i + .25, s, color='blue', fontweight='bold')
     plt.show()
-#
+
 
 
 
