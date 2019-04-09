@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 (C) 2018 Wanting Huang <172258368@qq.com>
-(C) 2018 Bernd Porr <bernd.porr@glasgow.ac.uk>
+(C) 2018-2019 Bernd Porr <bernd.porr@glasgow.ac.uk>
 
 GNU GENERAL PUBLIC LICENSE
 Version 3, 29 June 2007
@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as signal
 import math as math
-
+from scipy.interpolate import interp1d
 import scipy.stats as stats
 
 # Directory of the dataset (http://researchdata.gla.ac.uk/676/):
@@ -52,17 +52,25 @@ class NoiseWall:
         if self.dataok:
             self.loadDataFromFile(self.subdir)
 
-    # generate EEG power from a paralysed persion in a certain
-    # frequency band. Private function called from within.
-    def generateParalysedEEGVariance(self,band_low = 0,band_high = 0):
-        ## from paper
-        if (band_high == 0):
-            band_high = self.fs/2
+    def calcParalysedEEGVariance(self,filename,band_low,band_high):
+        a = np.loadtxt(filename)
+        f = a[:,0]
+        p = a[:,1]
+        psd = interp1d(f, p, kind='cubic')
+        bandpower = 0
+        for f2 in np.arange(band_low,band_high,1.0):
+            bandpower = bandpower + 10**psd(f2)
+        return bandpower
+
+    def generateParalysedEEGVariance(self,band_low,band_high):
         self.pureEEGVar = 0
-        for f in np.arange(band_low,band_high,1.0):
-            p = -11.5 - f*0.02
-            power_density = (10**p) / 1.4
-            self.pureEEGVar = self.pureEEGVar + power_density
+        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub1a.dat",band_low,band_high)
+        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub1b.dat",band_low,band_high)
+        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub1c.dat",band_low,band_high)
+        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub2a.dat",band_low,band_high)
+        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub2b.dat",band_low,band_high)
+        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub2c.dat",band_low,band_high)
+        self.pureEEGVar = self.pureEEGVar / 6.0
 
     # Loads the data from the database
     # this is a private function and there is no need to call it
@@ -247,3 +255,5 @@ def doStats(low_f,high_f):
 
 
 doStats(4,35)
+#doStats(8,13)
+#doStats(4,50)
