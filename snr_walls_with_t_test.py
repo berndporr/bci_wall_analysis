@@ -6,7 +6,7 @@ import math as math
 from scipy.interpolate import interp1d
 import scipy.stats as stats
 
-def doStats(low_f,high_f):
+def doStats(low_f,high_f,noiseReduction=1):
     experiments = ["lie_relax","blink","eyescrunching","raisingeyebrows","jaw","readingsitting","readinglieing","flow","sudoku","wordsearch","templerun"]
     wall_mean=[]
     wall_stddev=[]
@@ -20,7 +20,7 @@ def doStats(low_f,high_f):
         snr_tmp = []
         for subj in range(2,28):
             noiseWall = NoiseWall(subj,e)
-            noiseWall.noiseReduction = 6
+            noiseWall.noiseReduction = noiseReduction
             if noiseWall.dataok:
                 noiseWall.filterData(low_f,high_f)
                 try:
@@ -62,11 +62,16 @@ def doStats(low_f,high_f):
         s = " (p=%0.03f)" % pval[i]
         xpos = max([wall_mean[i],snr_mean[i]]) + 1
         ax.text(xpos, i + .25, s, color='blue', fontweight='bold')
-    plt.show()
 
 
 
-
+plt.figure(1)
 doStats(4,35)
+
+plt.figure(2)
+doStats(4,35,6)
+
+plt.show()
+
 #doStats(8,13)
 #doStats(4,50)
