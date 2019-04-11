@@ -25,12 +25,15 @@ def doStats(low_f,high_f,noiseReduction=1):
                 noiseWall.filterData(low_f,high_f)
                 try:
                     noiseWall.doAllCalcs()
-                    print("Noise wall of subj %s = %f dB" % (subj,noiseWall.getSNRwall()))
-                    print("SNR of subj %s = %f dB" % (subj,noiseWall.getSNR()))
+                    print("subj {:2d}: NoiseWall = {:>7.2f} dB, SNR = {:>7.2f} dB.".format(
+                        subj,
+                        noiseWall.getSNRwall(),
+                        noiseWall.getSNR()
+                          ))
                     wall_tmp.append(noiseWall.getSNRwall())
                     snr_tmp.append(noiseWall.getSNR())
                 except NoiseWall.NoiseWallException as err:
-                    print("subj"+str(subj)+"="+str(err))
+                    print("subj {:02d}: {}".format(subj,err))
         wall_mean.append(np.mean(wall_tmp))
         wall_stddev.append(np.std(wall_tmp))
         snr_mean.append(np.mean(snr_tmp))
@@ -39,7 +42,7 @@ def doStats(low_f,high_f,noiseReduction=1):
         t, p = stats.ttest_rel(snr_tmp, wall_tmp)
         if t < 0:
             p = 1
-        print("Experiment %s has p=%f, t=%f" % (e,p,t))
+        print("Experiment {} has p={}, t={}".format(e,p,t))
         pval.append(p)
         
 
@@ -53,25 +56,29 @@ def doStats(low_f,high_f,noiseReduction=1):
     rects_wall = ax.barh(index+height*1.1,wall_mean_shift,height,left=xleft,align='edge',color='b',xerr=wall_stddev)
     rects_snr = ax.barh(index,snr_mean_shift,height,color='y',left=xleft,align='edge',xerr=snr_stddev)
     ax.set_xlabel('dB')
-    ax.set_title('SNR vs SNR wall, p = average SNR has hit the SNR wall')
+    ax.set_title('SNR vs SNR wall, {:.1f}-{:.1f} Hz, noise reduction = {:.1f}'.format(low_f,high_f,noiseReduction))
     ax.set_yticks(index + height / 2)
     ax.set_yticklabels(experiments)
     ax.set_xlim([-20,20])
     ax.legend((rects_wall, rects_snr), ('Wall', 'SNR'))
     for i in range(len(experiments)):
-        s = " (p=%0.03f)" % pval[i]
+        s = " (p={:.3f})".format(pval[i])
+        if (pval[i] < 0.05):
+            s = s + "*"
         xpos = max([wall_mean[i],snr_mean[i]]) + 1
         ax.text(xpos, i + .25, s, color='blue', fontweight='bold')
 
 
-
-plt.figure(1)
+# wide
 doStats(4,35)
-
-plt.figure(2)
 doStats(4,35,6)
 
-plt.show()
+# narrow
+doStats(8,13)
+doStats(8,13,6)
 
-#doStats(8,13)
-#doStats(4,50)
+# highpass
+doStats(16,95)
+doStats(16,95,6)
+
+plt.show()

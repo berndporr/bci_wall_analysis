@@ -106,20 +106,15 @@ class NoiseWall:
         bfilt50hz,afilt50hz = signal.butter(2,[49/self.fs*2,51/self.fs*2],'stop')
         bhp,ahp = signal.butter(4,0.5/self.fs*2,'high')
         self.eeg = signal.lfilter(bhp,ahp,signal.lfilter(bfilt50hz,afilt50hz,self.eeg));
-        #emg_clean = signal.lfilter(bhp,ahp,signal.lfilter(bfilt50hz,afilt50hz,emg));
-        #trigger_clean = signal.lfilter(bhp,ahp,signal.lfilter(bfilt50hz,afilt50hz,trigger));
 
         ## strange 25 Hz interference
         bfilt25hz,afilt25hz = signal.butter(2,[24/self.fs*2,26/self.fs*2],'stop')
         self.eeg = signal.lfilter(bfilt25hz,afilt25hz,self.eeg);
-        #emg_clean = signal.lfilter(bfilt25hz,afilt25hz,emg_clean);
-        #trigger_clean = signal.lfilter(bfilt25hz,afilt25hz,trigger_clean);
 
         ## do we just look at a specific band?
         if (band_high > 0) and (band_low > 0) and (band_low < band_high):
-            bfilt1hz,afilt10hz = signal.butter(2,[1/self.fs*2,10/self.fs*2],'bandpass')
-            self.eeg = signal.lfilter(bfilt1hz,afilt10hz,self.eeg)
-        #FILTER COMPLETE
+            bfiltbp,afiltbp = signal.butter(4,[band_low/self.fs*2,band_high/self.fs*2],'bandpass')
+            self.eeg = signal.lfilter(bfiltbp,afiltbp,self.eeg)
 
         self.generateParalysedEEGVariance(band_low,band_high)
 
