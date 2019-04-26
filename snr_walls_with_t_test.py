@@ -83,4 +83,9 @@ doStats(minEEGf,maxEEGf,4,35,6)
 doStats(minEEGf,maxEEGf,8,18)
 doStats(minEEGf,maxEEGf,8,18,6)
 
+# highpass
+doStats(minEEGf,maxEEGf,-1,-1)
+doStats(minEEGf,maxEEGf,-1,-1,6)
+
+
 plt.show()

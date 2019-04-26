@@ -15,7 +15,16 @@ plt.title("EEG filter response")
 
 plt.figure()
 noiseWall = NoiseWall(20,"jaw")
-noiseWall.filterData()
+noiseWall.filterData(1,95)
+plt.plot(noiseWall.eegFilterFrequencyResponse**2)
+plt.xlabel("Hz")
+plt.ylabel("gain (linear)")
+plt.title("EEG filter response")
+
+
+plt.figure()
+noiseWall = NoiseWall(20,"jaw")
+noiseWall.filterData(-1)
 plt.plot(noiseWall.eegFilterFrequencyResponse**2)
 plt.xlabel("Hz")
 plt.ylabel("gain (linear)")

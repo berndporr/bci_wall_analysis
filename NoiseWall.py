@@ -141,9 +141,17 @@ class NoiseWall:
         if (band_high > 0) and (band_low > 0) and (band_low < band_high):
             bfiltbp,afiltbp = signal.butter(4,[band_low/self.fs*2,band_high/self.fs*2],'bandpass')
             self.eeg = signal.lfilter(bfiltbp,afiltbp,self.eeg)
-            
-        self.eegFilterFrequencyResponse = self.calcFrequencyResponse(bfiltbp, afiltbp, fresp)
-        
+            self.eegFilterFrequencyResponse = self.calcFrequencyResponse(bfiltbp, afiltbp, fresp)
+
+        ## highpass filter
+        if band_low < 0:
+            bfiltbp = [0.25,0.25,0.25,0.25,-0.25,-0.25,-0.25,-0.25]
+            afiltbp = [1]
+            for i in range(-int(band_low)):
+                self.eeg = signal.lfilter(bfiltbp,afiltbp,self.eeg)
+                fresp = self.calcFrequencyResponse(bfiltbp, afiltbp, fresp)
+                self.eegFilterFrequencyResponse = fresp
+                    
 
     def getMinNoiseVarEEGChunk(self):
         dt=self.zero_data-self.zero_video
