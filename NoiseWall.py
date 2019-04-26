@@ -53,24 +53,28 @@ class NoiseWall:
         if self.dataok:
             self.loadDataFromFile(self.subdir)
 
-    def calcParalysedEEGVariance(self,filename,band_low,band_high):
+    def calcParalysedEEGVariance(self,filename,minf=-1,maxf=-1):
         a = np.loadtxt(filename)
         f = a[:,0]
         p = a[:,1]
         psd = interp1d(f, p, kind='cubic')
+        if minf < 0:
+            minf = int(min(f))+1
+        if maxf < 0:
+            maxf = int(max(f))-1
         bandpower = 0
-        for f2 in np.arange(band_low,band_high,1.0):
-            bandpower = bandpower + 10**psd(f2)
+        for f2 in np.arange(minf,maxf):
+            bandpower = bandpower + ( 10**psd(f2) ) * ( self.eegFilterFrequencyResponse[f2]**2 )
         return bandpower
 
     def generateParalysedEEGVariance(self,band_low,band_high):
         self.pureEEGVar = 0
-        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub1a.dat",band_low,band_high)
-        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub1b.dat",band_low,band_high)
-        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub1c.dat",band_low,band_high)
-        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub2a.dat",band_low,band_high)
-        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub2b.dat",band_low,band_high)
-        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub2c.dat",band_low,band_high)
+        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub1a.dat")
+        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub1b.dat")
+        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub1c.dat")
+        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub2a.dat")
+        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub2b.dat")
+        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub2c.dat")
         self.pureEEGVar = self.pureEEGVar / 6.0
 
     # Loads the data from the database
@@ -111,10 +115,17 @@ class NoiseWall:
         bfilt25hz,afilt25hz = signal.butter(2,[24/self.fs*2,26/self.fs*2],'stop')
         self.eeg = signal.lfilter(bfilt25hz,afilt25hz,self.eeg);
 
+        ## by default we look at the whole EEG band
+        bfiltbp = [1]
+        afiltbp = [1]
+        
         ## do we just look at a specific band?
         if (band_high > 0) and (band_low > 0) and (band_low < band_high):
             bfiltbp,afiltbp = signal.butter(4,[band_low/self.fs*2,band_high/self.fs*2],'bandpass')
             self.eeg = signal.lfilter(bfiltbp,afiltbp,self.eeg)
+            
+        w,h = signal.freqz(bfiltbp, afiltbp, worN=int(self.fs/2))
+        self.eegFilterFrequencyResponse = np.abs(h)
 
         self.generateParalysedEEGVariance(band_low,band_high)
 
