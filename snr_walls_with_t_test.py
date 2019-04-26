@@ -6,7 +6,7 @@ import math as math
 from scipy.interpolate import interp1d
 import scipy.stats as stats
 
-def doStats(low_f,high_f,noiseReduction=1):
+def doStats(EEGsignal_min_f,EEGsignal_max_f,filter_low_f,filter_high_f,noiseReduction=1):
     experiments = ["lie_relax","blink","eyescrunching","raisingeyebrows","jaw","readingsitting","readinglieing","flow","sudoku","wordsearch","templerun"]
     wall_mean=[]
     wall_stddev=[]
@@ -22,9 +22,9 @@ def doStats(low_f,high_f,noiseReduction=1):
             noiseWall = NoiseWall(subj,e)
             noiseWall.noiseReduction = noiseReduction
             if noiseWall.dataok:
-                noiseWall.filterData(low_f,high_f)
+                noiseWall.filterData(filter_low_f,filter_high_f)
                 try:
-                    noiseWall.doAllCalcs()
+                    noiseWall.doAllCalcs(EEGsignal_min_f,EEGsignal_max_f)
                     print("subj {:2d}: NoiseWall = {:>7.2f} dB, SNR = {:>7.2f} dB.".format(
                         subj,
                         noiseWall.getSNRwall(),
@@ -56,7 +56,11 @@ def doStats(low_f,high_f,noiseReduction=1):
     rects_wall = ax.barh(index+height*1.1,wall_mean_shift,height,left=xleft,align='edge',color='b',xerr=wall_stddev)
     rects_snr = ax.barh(index,snr_mean_shift,height,color='y',left=xleft,align='edge',xerr=snr_stddev)
     ax.set_xlabel('dB')
-    ax.set_title('SNR vs SNR wall, {:.1f}-{:.1f} Hz, noise reduction = {:.1f}'.format(low_f,high_f,noiseReduction))
+    ax.set_title('SNR vs SNR wall, EEG:{:.1f}-{:.1f} Hz, BP:{:.1f}-{:.1f} Hz, NR = {:.1f}'.format(EEGsignal_min_f,
+                                                                                                  EEGsignal_max_f,
+                                                                                                  filter_low_f,
+                                                                                                  filter_high_f,
+                                                                                                  noiseReduction))
     ax.set_yticks(index + height / 2)
     ax.set_yticklabels(experiments)
     ax.set_xlim([-20,20])
@@ -68,17 +72,15 @@ def doStats(low_f,high_f,noiseReduction=1):
         xpos = max([wall_mean[i],snr_mean[i]]) + 1
         ax.text(xpos, i + .25, s, color='blue', fontweight='bold')
 
+minEEGf = 8
+maxEEGf = 18
 
 # wide
-doStats(4,35)
-doStats(4,35,6)
+doStats(minEEGf,maxEEGf,4,35)
+doStats(minEEGf,maxEEGf,4,35,6)
 
 # narrow
-doStats(8,13)
-doStats(8,13,6)
-
-# highpass
-doStats(16,95)
-doStats(16,95,6)
+doStats(minEEGf,maxEEGf,8,18)
+doStats(minEEGf,maxEEGf,8,18,6)
 
 plt.show()

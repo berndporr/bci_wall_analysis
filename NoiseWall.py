@@ -45,6 +45,8 @@ class NoiseWall:
     # Constructor with subject number and experiment
     # Loads the data if a complete dataset exists for this experiment
     def __init__(self,subj,experiment):
+        self.f_signal_min = 1
+        self.f_signal_max = 95
         self.noiseReduction = 1
         s = "%02d" % subj
         d = np.loadtxt(dataset676dir+"/experiment_data/subj"+s+"/"+"all_exp_ok.dat", dtype=bytes).astype(str)
@@ -53,28 +55,24 @@ class NoiseWall:
         if self.dataok:
             self.loadDataFromFile(self.subdir)
 
-    def calcParalysedEEGVariance(self,filename,minf=-1,maxf=-1):
+    def readParalysedEEGVarianceFromWhithamEtAl(self,filename):
         a = np.loadtxt(filename)
         f = a[:,0]
         p = a[:,1]
         psd = interp1d(f, p, kind='cubic')
-        if minf < 0:
-            minf = int(min(f))+1
-        if maxf < 0:
-            maxf = int(max(f))-1
         bandpower = 0
-        for f2 in np.arange(minf,maxf):
+        for f2 in np.arange(self.f_signal_min,self.f_signal_max):
             bandpower = bandpower + ( 10**psd(f2) ) * ( self.eegFilterFrequencyResponse[f2]**2 )
         return bandpower
 
-    def generateParalysedEEGVariance(self,band_low,band_high):
+    def calculateParalysedEEGVariance(self):
         self.pureEEGVar = 0
-        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub1a.dat")
-        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub1b.dat")
-        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub1c.dat")
-        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub2a.dat")
-        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub2b.dat")
-        self.pureEEGVar = self.pureEEGVar + self.calcParalysedEEGVariance("sub2c.dat")
+        self.pureEEGVar = self.pureEEGVar + self.readParalysedEEGVarianceFromWhithamEtAl("sub1a.dat")
+        self.pureEEGVar = self.pureEEGVar + self.readParalysedEEGVarianceFromWhithamEtAl("sub1b.dat")
+        self.pureEEGVar = self.pureEEGVar + self.readParalysedEEGVarianceFromWhithamEtAl("sub1c.dat")
+        self.pureEEGVar = self.pureEEGVar + self.readParalysedEEGVarianceFromWhithamEtAl("sub2a.dat")
+        self.pureEEGVar = self.pureEEGVar + self.readParalysedEEGVarianceFromWhithamEtAl("sub2b.dat")
+        self.pureEEGVar = self.pureEEGVar + self.readParalysedEEGVarianceFromWhithamEtAl("sub2c.dat")
         self.pureEEGVar = self.pureEEGVar / 6.0
 
     # Loads the data from the database
@@ -99,21 +97,41 @@ class NoiseWall:
         self.T=1/self.fs
         self.t=np.arange(0,self.T*len(self.eeg),self.T)
 
+
+    # calculates the frequency response of an IIR filter and takes the abs
+    # value
+    def calcFrequencyResponse(self,b,a,h_in=[]):
+        w,h_new = signal.freqz(b, a, worN=int(self.fs/2))
+        if len(h_in) < 1:
+            return np.abs(h_new)
+        else:
+            return np.abs(h_new) * h_in
+
+
+
     # Filters out known powerline interference and limits the EEG
     # to the band of interest.
     def filterData(self,band_low=0,band_high=0):
-        # smooth it at 50Hz cutoff
-        bLP,aLP = signal.butter(4,50/self.fs*2)
+        # smooth it at 100Hz cutoff
+        bLP,aLP = signal.butter(6,100/self.fs*2)
         self.eeg = signal.lfilter(bLP,aLP,self.eeg);
+        fresp = self.calcFrequencyResponse(bLP, aLP)
 
         ## highpass at 1Hz and 50Hz notch
         bfilt50hz,afilt50hz = signal.butter(2,[49/self.fs*2,51/self.fs*2],'stop')
         bhp,ahp = signal.butter(4,0.5/self.fs*2,'high')
         self.eeg = signal.lfilter(bhp,ahp,signal.lfilter(bfilt50hz,afilt50hz,self.eeg));
+        fresp = self.calcFrequencyResponse(bhp,ahp,fresp)
 
         ## strange 25 Hz interference
         bfilt25hz,afilt25hz = signal.butter(2,[24/self.fs*2,26/self.fs*2],'stop')
         self.eeg = signal.lfilter(bfilt25hz,afilt25hz,self.eeg);
+        fresp = self.calcFrequencyResponse(bfilt25hz,afilt25hz,fresp)
+
+        ## 50 Hz interference
+        bfilt50hz,afilt50hz = signal.butter(2,[49/self.fs*2,51/self.fs*2],'stop')
+        self.eeg = signal.lfilter(bfilt50hz,afilt50hz,self.eeg);
+        fresp = self.calcFrequencyResponse(bfilt50hz,afilt50hz,fresp)
 
         ## by default we look at the whole EEG band
         bfiltbp = [1]
@@ -124,11 +142,8 @@ class NoiseWall:
             bfiltbp,afiltbp = signal.butter(4,[band_low/self.fs*2,band_high/self.fs*2],'bandpass')
             self.eeg = signal.lfilter(bfiltbp,afiltbp,self.eeg)
             
-        w,h = signal.freqz(bfiltbp, afiltbp, worN=int(self.fs/2))
-        self.eegFilterFrequencyResponse = np.abs(h)
-
-        self.generateParalysedEEGVariance(band_low,band_high)
-
+        self.eegFilterFrequencyResponse = self.calcFrequencyResponse(bfiltbp, afiltbp, fresp)
+        
 
     def getMinNoiseVarEEGChunk(self):
         dt=self.zero_data-self.zero_video
@@ -190,9 +205,12 @@ class NoiseWall:
         self.SNR= 10 * math.log10( self.pureEEGVar / noiseVariance )
 
     # Do all calculations in one go
-    def doAllCalcs(self):
+    def doAllCalcs(self,minEEGSignalFrequencyBand,maxEEGSignalFrequencyBand):        
+        self.f_signal_min = minEEGSignalFrequencyBand
+        self.f_signal_max = maxEEGSignalFrequencyBand
         if not self.dataok:
             raise self.NoiseWallException(self.DATA_INVALID)
+        self.calculateParalysedEEGVariance()
         self.calcNoiseVarMin()
         self.calcNoiseVarMax()
         self.calcRho()

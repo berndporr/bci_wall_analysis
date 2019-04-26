@@ -15,7 +15,6 @@ for e in experiments:
         print(subj)
         noiseWall = NoiseWall(subj,e)
         if noiseWall.dataok:
-            #noiseWall.filterData()
             eeg = noiseWall.getMinNoiseVarEEGChunk()
             feeg = np.fft.fft(eeg) / len(eeg)
             feeg = np.abs(feeg)
