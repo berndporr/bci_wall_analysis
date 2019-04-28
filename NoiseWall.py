@@ -48,6 +48,7 @@ class NoiseWall:
         self.f_signal_min = 1
         self.f_signal_max = 95
         self.noiseReduction = 1
+        self.consciousEEGgain = 2
         s = "%02d" % subj
         d = np.loadtxt(dataset676dir+"/experiment_data/subj"+s+"/"+"all_exp_ok.dat", dtype=bytes).astype(str)
         self.dataok = d in ['True','true','ok','OK']
@@ -210,7 +211,8 @@ class NoiseWall:
     # Calculates the SNR in decibel
     def calcSNR(self):
         noiseVariance = self.noiseVarMin * self.rho
-        self.SNR= 10 * math.log10( self.pureEEGVar / noiseVariance )
+        consciousEEGvar = (self.consciousEEGgain**2) * self.pureEEGVar
+        self.SNR= 10 * math.log10( consciousEEGvar / noiseVariance )
 
     # Do all calculations in one go
     def doAllCalcs(self,minEEGSignalFrequencyBand,maxEEGSignalFrequencyBand):        
