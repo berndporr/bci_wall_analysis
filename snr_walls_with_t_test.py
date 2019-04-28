@@ -25,8 +25,9 @@ def doStats(EEGsignal_min_f,EEGsignal_max_f,filter_low_f,filter_high_f,noiseRedu
                 noiseWall.filterData(filter_low_f,filter_high_f)
                 try:
                     noiseWall.doAllCalcs(EEGsignal_min_f,EEGsignal_max_f)
-                    print("subj {:2d}: NoiseWall = {:>7.2f} dB, SNR = {:>7.2f} dB.".format(
+                    print("subj {:2d}: delta EEG = {:>2.1f}uV, NoiseWall = {:>7.2f} dB, SNR = {:>7.2f} dB.".format(
                         subj,
+                        noiseWall.consciousEEGvar**0.5 * 1E6,
                         noiseWall.getSNRwall(),
                         noiseWall.getSNR()
                           ))

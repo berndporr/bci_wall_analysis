@@ -48,7 +48,7 @@ class NoiseWall:
         self.f_signal_min = 1
         self.f_signal_max = 95
         self.noiseReduction = 1
-        self.consciousEEGgain = 2
+        self.consciousEEGgain = 1
         s = "%02d" % subj
         d = np.loadtxt(dataset676dir+"/experiment_data/subj"+s+"/"+"all_exp_ok.dat", dtype=bytes).astype(str)
         self.dataok = d in ['True','true','ok','OK']
@@ -163,14 +163,14 @@ class NoiseWall:
     # Minimal noise variance taken from a stretch before the experiment
     # starts.
     def calcNoiseVarMin(self):
-        yMin=self.getMinNoiseVarEEGChunk()
+        yMin=self.getMinNoiseVarEEGChunk() / self.noiseReduction
         yMinVar = np.var(yMin)
-        self.noiseVarMin= (yMinVar - self.pureEEGVar) / self.noiseReduction
+        self.noiseVarMin= yMinVar
         if (self.noiseVarMin < 0):
             raise self.NoiseWallException(self.MIN_VAR_NEG)
         if (yMinVar**0.5) > 50E-6:
             raise self.NoiseWallException(self.MIN_VAR_UNUSUALLY_HIGH)
-        
+
     
     # Maximum noise variance taken from a range of section where the
     # variance is highest = where an artefact happens.
@@ -189,8 +189,8 @@ class NoiseWall:
             t2=tend[i]
             t1=int(self.fs*t1)
             t2=int(self.fs*t2)
-            signalWithArtefact=self.eeg[t1:t2]
-            artefactVar = (np.var(signalWithArtefact) - self.pureEEGVar)  / self.noiseReduction
+            signalWithArtefact=self.eeg[t1:t2] / self.noiseReduction
+            artefactVar = np.var(signalWithArtefact)
             maxVarList.append(artefactVar)
 
         self.noiseVarMax = np.median(maxVarList)
@@ -211,8 +211,8 @@ class NoiseWall:
     # Calculates the SNR in decibel
     def calcSNR(self):
         noiseVariance = self.noiseVarMin * self.rho
-        consciousEEGvar = (self.consciousEEGgain**2) * self.pureEEGVar
-        self.SNR= 10 * math.log10( consciousEEGvar / noiseVariance )
+        self.consciousEEGvar = (self.consciousEEGgain**2) * self.pureEEGVar
+        self.SNR= 10 * math.log10( self.consciousEEGvar / noiseVariance )
 
     # Do all calculations in one go
     def doAllCalcs(self,minEEGSignalFrequencyBand,maxEEGSignalFrequencyBand):        
