@@ -51,7 +51,7 @@ class Tasks:
         if endsec:
             b = endsec * self.Fs
         else:
-            b = -self.Fs * 10
+            b = -1
 
         self.ch1 = self.ch1[a:b]
         self.ch2 = self.ch2[a:b]
