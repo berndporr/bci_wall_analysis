@@ -12,15 +12,20 @@ VEPstartTime = 0.35 # sec
 VEPendTime = 0.45 # sec
 
 class NoiseWall:
-    def __init__(self,subj,task,startsec=False):
+    class NoiseWallException(Exception):
+        pass
+    
+    def __init__(self,subj,task,startsec=False,minF=False,maxF=False):
         self.subj = subj
         self.task = task
         self.startsec = startsec
+        self.minF = minF
+        self.maxF = maxF
     
     # Calculates the noise uncertainty as the ratio between the
     # min variance and the max variance.
     def calcRho(self):
-        task = researchdata1258.Tasks(self.subj,self.task)
+        task = researchdata1258.Tasks(self.subj,self.task,band_low=self.minF,band_high=self.maxF)
         y = task.ch1
         winSize = 1000
         self.noiseVarMin = 1E10
@@ -49,19 +54,25 @@ class NoiseWall:
 if __name__ == "__main__":
     subj = 1
     task = researchdata1258.Tasks.TASKS[0]
+    minF = False
+    maxF = False
 
     helptext = 'usage: {} -p participant -s startsec -t task -h'.format(sys.argv[0])
 
     try:
         # Gather the arguments
         all_args = sys.argv[1:]
-        opts, arg = getopt.getopt(all_args, 'p:s:t:')
+        opts, arg = getopt.getopt(all_args, 'p:s:t:a:b:h')
         # Iterate over the options and values
         for opt, arg_val in opts:
             if '-p' in opt:
                 subj = int(arg_val)
             elif '-s' in opt:
                 startsec = int(arg_val)
+            elif '-a' in opt:
+                minF = int(arg_val)
+            elif '-b' in opt:
+                maxF = int(arg_val)
             elif '-t' in opt:
                 task = arg_val
             elif '-h' in opt:
@@ -72,7 +83,7 @@ if __name__ == "__main__":
         print (helptext)
         sys.exit(2)
 
-    noisewall = NoiseWall(subj,task)
+    noisewall = NoiseWall(subj,task,minF=minF,maxF=maxF)
     noisewall.calcNoiseWall()
     
     print("Subject: {}, Task: {}, Wall= {}dB".format(subj,task,noisewall.SNRwall))

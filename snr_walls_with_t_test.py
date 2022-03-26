@@ -8,6 +8,9 @@ import scipy.stats as stats
 import researchdata1258
 import noisewall
 import snr
+import sys
+import getopt
+
 
 subjectsOK = [1,3,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
 
@@ -27,7 +30,7 @@ def doStats(EEGsignal_min_f=False,EEGsignal_max_f=False):
             noiseWall = noisewall.NoiseWall(subj,e)
             noiseWall.calcNoiseWall()
             wall_tmp.append(noiseWall.SNRwall)
-            s = snr.SNR(subj,e)
+            s = snr.SNR(subj,e,minF=EEGsignal_min_f,maxF=EEGsignal_max_f)
             s.calcSNR()
             snr_tmp.append(s.snrvalue)
             print("Wall = {}, SNR = {}.".format(noiseWall.SNRwall,s.snrvalue))
@@ -66,6 +69,31 @@ def doStats(EEGsignal_min_f=False,EEGsignal_max_f=False):
         xpos = max([wall_mean[i],snr_mean[i]]) + 1
         ax.text(xpos, i + .25, s, color='blue', fontweight='bold')
 
-doStats()
+    
 
+helptext = 'usage: {} -w -n -h'.format(sys.argv[0])
+
+try:
+    # Gather the arguments
+    all_args = sys.argv[1:]
+    opts, arg = getopt.getopt(all_args, 'nwh')
+    # Iterate over the options and values
+    for opt, arg_val in opts:
+        if '-w' in opt:
+            doStats(4,35)
+            plt.show()
+            sys.exit(0)
+        elif '-n' in opt:
+            doStats(8,18)
+            plt.show()
+            sys.exit(0)
+        elif '-h' in opt:
+            raise getopt.GetoptError()
+        else:
+            raise getopt.GetoptError()
+except getopt.GetoptError:
+    print (helptext)
+    sys.exit(2)
+
+doStats()
 plt.show()

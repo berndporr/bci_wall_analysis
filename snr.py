@@ -7,31 +7,42 @@ import scipy.signal as signal
 import getopt
 import os
 import researchdata1258
+import paralysedeeg
 
 VEPstartTime = 0.35 # sec
 VEPendTime = 0.45 # sec
 
 class SNR:
-    def __init__(self,subj,task,startsec=False):
+    def __init__(self,subj,task,startsec=False,minF=False,maxF=False):
         self.subj = subj
         self.task = task
         self.startsec = startsec
+        self.minF = minF
+        self.maxF = maxF
+        if minF and maxF:
+            print("Using ParalysedEEG")
+        else:
+            print("Using P300")
     
-    def calcNoisePower(self,band_low=False,band_high=False):
-        task = researchdata1258.Tasks(self.subj,self.task,band_low=band_low,band_high=band_high)
+    def calcNoisePower(self):
+        task = researchdata1258.Tasks(self.subj,self.task,band_low=self.minF,band_high=self.maxF)
         y = task.ch1
         return np.var(y)
 
-    def calcEPPower(self):
-        ep = researchdata1258.Evoked_potentials(self.subj)
-        t,p300 = ep.get_averaged_ep()
-        p300peak = p300[int(ep.Fs*VEPstartTime):int(ep.Fs*VEPendTime)]
-        return np.median(p300peak**2)        
+    def calcSignalPower(self):
+        if self.minF and self.maxF:
+            pe = paralysedeeg.ParalysedEEG(self.minF,self.maxF)
+            return pe.getPureEEGVar()
+        else:
+            ep = researchdata1258.Evoked_potentials(self.subj)
+            t,p300 = ep.get_averaged_ep()
+            p300peak = p300[int(ep.Fs*VEPstartTime):int(ep.Fs*VEPendTime)]
+            return np.median(p300peak**2)
 
     def calcSNR(self,band_low=False,band_high=False):
-        NoisePwr = self.calcNoisePower(band_low=band_low,band_high=band_high)
-        SignalPwr = self.calcEPPower()
-        print("Signal Power:",SignalPwr)
+        NoisePwr = self.calcNoisePower()
+        SignalPwr = self.calcSignalPower()
+        print("Signal Power = {}, Amplitude = {}uV".format(SignalPwr,(SignalPwr**0.5)*1E6))
         print("NoisePwr:",NoisePwr)
         self.snrvalue = np.log10(SignalPwr/NoisePwr)*10
 
@@ -69,6 +80,6 @@ if __name__ == "__main__":
         print (helptext)
         sys.exit(2)
 
-    snr = SNR(subj,task)
-    snr.calcSNR(band_low=a,band_high=b)
+    snr = SNR(subj,task,minF=a,maxF=b)
+    snr.calcSNR()
     print("Subject: {}, Task: {}, SNR= {}dB".format(subj,task,snr.snrvalue))

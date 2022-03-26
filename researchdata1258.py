@@ -62,7 +62,7 @@ class Evoked_potentials:
     Fs = 250
     HPfc = 0.5
         
-    def __init__(self,_participant,startsec=False,band_low = False, band_high = False):
+    def __init__(self,_participant,startsec=False):
         """
         Loads the P300 or VEP of one Participant.
         _participant is the integer number of the participant
@@ -96,11 +96,6 @@ class Evoked_potentials:
         b100,a100 = signal.butter(4,[98/self.Fs*2,102/self.Fs*2],'stop')
         self.eeg = signal.lfilter(b100,a100,self.eeg);
 
-        ## do we just look at a specific band?
-        if (band_high) and (band_low):
-            bfiltbp,afiltbp = signal.butter(4,[band_low/self.Fs*2,band_high/self.Fs*2],'bandpass')
-            self.eeg = signal.lfilter(bfiltbp,afiltbp,self.eeg)
-
         if startsec:
             a = startsec * self.Fs
         else:
@@ -133,4 +128,3 @@ class Evoked_potentials:
         for i in range(len(self.oddball_samples)-1):
             dt = np.append(dt,(self.oddball_samples[i+1] - self.oddball_samples[i])/self.Fs)
         return np.mean(dt),np.std(dt),int(np.round(min(dt))),int(np.round(max(dt)))
-
