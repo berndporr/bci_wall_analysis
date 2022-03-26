@@ -23,7 +23,7 @@ class SNR:
         return np.var(y)
 
     def calcEPPower(self):
-        ep = researchdata1258.Evoked_potentials(subj)
+        ep = researchdata1258.Evoked_potentials(self.subj)
         t,p300 = ep.get_averaged_ep()
         p300peak = p300[int(ep.Fs*VEPstartTime):int(ep.Fs*VEPendTime)]
         return np.median(p300peak**2)        
@@ -33,9 +33,7 @@ class SNR:
         SignalPwr = self.calcEPPower()
         print("Signal Power:",SignalPwr)
         print("NoisePwr:",NoisePwr)
-        snr = np.log10(SignalPwr/NoisePwr)*10
-        return snr
-
+        self.snrvalue = np.log10(SignalPwr/NoisePwr)*10
 
     
 # check if we run this as a main program
@@ -66,4 +64,5 @@ if __name__ == "__main__":
         sys.exit(2)
 
     snr = SNR(subj,task)
-    print("Subject: {}, Task: {}, SNR= {}dB".format(subj,task,snr.calcSNR()))
+    snr.calcSNR()
+    print("Subject: {}, Task: {}, SNR= {}dB".format(subj,task,snr.snrvalue))
