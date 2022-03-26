@@ -22,18 +22,8 @@ class Tasks:
         fullpath = "../gla_researchdata_1258/EEG_recordings/participant{:03d}/{}.tsv".format(self.participant,self.task)
         self.data = np.loadtxt(fullpath)
         
-        self.startsec = startsec
-        if startsec:
-            a = startsec * self.Fs
-        else:
-            a = 2 * self.Fs
-        if endsec:
-            b = endsec * self.Fs
-        else:
-            b = -self.Fs*2
-
-        self.ch1 = self.data[a:b,7]
-        self.ch2 = self.data[a:b,8]
+        self.ch1 = self.data[:,7]
+        self.ch2 = self.data[:,8]
         self.t = np.linspace(0,len(self.ch1)/self.Fs,len(self.ch1))
         if not filterData:
             return
@@ -53,9 +43,18 @@ class Tasks:
         self.ch1 = signal.lfilter(b150,a150,self.ch1);
         self.ch2 = signal.lfilter(b150,a150,self.ch2);
 
-        # 2secs muted
-        self.ch1[0:1000] = 0
-        self.ch2[0:1000] = 0
+        self.startsec = startsec
+        if startsec:
+            a = startsec * self.Fs
+        else:
+            a = 10 * self.Fs
+        if endsec:
+            b = endsec * self.Fs
+        else:
+            b = -self.Fs * 10
+
+        self.ch1 = self.ch1[a:b]
+        self.ch2 = self.ch2[a:b]
 
 
 class Evoked_potentials:
