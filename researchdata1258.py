@@ -6,7 +6,7 @@ class Tasks:
     TASKS = ["jawclench", "read", "colour", "wordsearch", "sudoku", "phoneApp", "lyingEC", "lyingEO"]
     Fs = 500
     
-    def __init__(self,_participant,_task,startsec=False,endsec=False,filterData=True):
+    def __init__(self,_participant,_task,startsec=False,band_low=False,band_high=False):
         '''
         _participant is the participant number
         _task is one of the tasks from the TASKS array
@@ -25,8 +25,6 @@ class Tasks:
         self.ch1 = self.data[:,7]
         self.ch2 = self.data[:,8]
         self.t = np.linspace(0,len(self.ch1)/self.Fs,len(self.ch1))
-        if not filterData:
-            return
 
         # Remove DC
         bHigh,aHigh = signal.butter(4,1/self.Fs*2,'high')
@@ -43,25 +41,28 @@ class Tasks:
         self.ch1 = signal.lfilter(b150,a150,self.ch1);
         self.ch2 = signal.lfilter(b150,a150,self.ch2);
 
+        ## do we just look at a specific band?
+        if (band_high) and (band_low):
+            bfiltbp,afiltbp = signal.butter(4,[band_low/self.Fs*2,band_high/self.Fs*2],'bandpass')
+            self.ch1 = signal.lfilter(bfiltbp,afiltbp,self.ch1)
+            self.ch2 = signal.lfilter(bfiltbp,afiltbp,self.ch2)
+            
         self.startsec = startsec
         if startsec:
             a = startsec * self.Fs
         else:
-            a = 10 * self.Fs
-        if endsec:
-            b = endsec * self.Fs
-        else:
-            b = -1
+            # 5 sec
+            a = 5 * self.Fs
 
-        self.ch1 = self.ch1[a:b]
-        self.ch2 = self.ch2[a:b]
+        self.ch1 = self.ch1[a:-1]
+        self.ch2 = self.ch2[a:-1]
 
 
 class Evoked_potentials:
     Fs = 250
     HPfc = 0.5
         
-    def __init__(self,_participant,startsec=False,do_filter_data = True):
+    def __init__(self,_participant,startsec=False,band_low = False, band_high = False):
         """
         Loads the P300 or VEP of one Participant.
         _participant is the integer number of the participant
@@ -77,24 +78,15 @@ class Evoked_potentials:
         fullpath = "../gla_researchdata_1258/EEG_recordings/participant{:03d}/rawp300.tsv".format(self.participant)
         self.data = np.loadtxt(fullpath)
         self.startsec = startsec
-        if startsec:
-            a = startsec * self.Fs
-        else:
-            a = 2 * self.Fs
-        self.eeg = self.data[a:,0]
-        self.oddball_flags = self.data[a:,2]
+        self.eeg = self.data[:,0]
+        self.oddball_flags = self.data[:,2]
         self.oddball_samples = np.argwhere(self.oddball_flags > 0.5)
         self.initial_samples_to_ignore = 0
-        self.t = np.linspace(0,len(self.data)/self.Fs,len(self.data))
-        if do_filter_data:
-            self.__filter_data()
-        
-    def __filter_data(self):
+
         # Remove DC
-        bHigh,aHigh = signal.butter(2,0.25/self.Fs*2,'high')
+        bHigh,aHigh = signal.butter(2,self.HPfc/self.Fs*2,'high')
         self.eeg = signal.lfilter(bHigh,aHigh,self.eeg);
-        # for VEP
-        self.initial_samples_to_ignore = int(self.Fs / self.HPfc) * 3
+        initial_samples_to_ignore = int(self.Fs / self.HPfc) * 3
 
         # Remove 50Hz noise
         b50,a50 = signal.butter(4,[48/self.Fs*2,52/self.Fs*2],'stop')
@@ -103,6 +95,17 @@ class Evoked_potentials:
         # Remove 150Hz interference
         b100,a100 = signal.butter(4,[98/self.Fs*2,102/self.Fs*2],'stop')
         self.eeg = signal.lfilter(b100,a100,self.eeg);
+
+        ## do we just look at a specific band?
+        if (band_high) and (band_low):
+            bfiltbp,afiltbp = signal.butter(4,[band_low/self.Fs*2,band_high/self.Fs*2],'bandpass')
+            self.eeg = signal.lfilter(bfiltbp,afiltbp,self.eeg)
+
+        if startsec:
+            a = startsec * self.Fs
+        else:
+            a = initial_samples_to_ignore
+        self.egg = self.eeg[a:-1]
 
         
     def get_averaged_ep(self):

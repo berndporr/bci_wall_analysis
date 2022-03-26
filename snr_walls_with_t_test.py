@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as signal
@@ -8,7 +9,9 @@ import researchdata1258
 import noisewall
 import snr
 
-def doStats(EEGsignal_min_f,EEGsignal_max_f):
+subjectsOK = [1,3,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+
+def doStats(EEGsignal_min_f=False,EEGsignal_max_f=False):
     wall_mean=[]
     wall_stddev=[]
     snr_mean=[]
@@ -19,7 +22,8 @@ def doStats(EEGsignal_min_f,EEGsignal_max_f):
         print("\n"+e)
         wall_tmp = []
         snr_tmp = []
-        for subj in range(1,20):
+        for subj in subjectsOK:
+            print(e,subj,":")
             noiseWall = noisewall.NoiseWall(subj,e)
             noiseWall.calcNoiseWall()
             wall_tmp.append(noiseWall.SNRwall)
@@ -39,34 +43,29 @@ def doStats(EEGsignal_min_f,EEGsignal_max_f):
         pval.append(p)
         
 
-    index = np.arange(len(experiments))
+    index = np.arange(len(researchdata1258.Tasks.TASKS))
     height = 0.35
     fig, ax = plt.subplots()
     baseline = 20
-    xleft = np.ones(len(experiments)) * -baseline
+    xleft = np.ones(len(researchdata1258.Tasks.TASKS)) * -baseline
     wall_mean_shift = [x+baseline for x in wall_mean]
     snr_mean_shift = [x+baseline for x in snr_mean]
     rects_wall = ax.barh(index+height*1.1,wall_mean_shift,height,left=xleft,align='edge',color='b',xerr=wall_stddev)
     rects_snr = ax.barh(index,snr_mean_shift,height,color='y',left=xleft,align='edge',xerr=snr_stddev)
     ax.set_xlabel('dB')
-    ax.set_title('SNR vs SNR wall, EEG:{:.1f}-{:.1f} Hz, BP:{:.1f}-{:.1f} Hz, NR = {:.1f}'.format(EEGsignal_min_f,
-                                                                                                  EEGsignal_max_f,
-                                                                                                  filter_low_f,
-                                                                                                  filter_high_f,
-                                                                                                  noiseReduction))
+    ax.set_title('SNR vs SNR wall, BP:{:.1f}-{:.1f} Hz'.format(EEGsignal_min_f,
+                                                               EEGsignal_max_f));
     ax.set_yticks(index + height / 2)
-    ax.set_yticklabels(experiments)
+    ax.set_yticklabels(researchdata1258.Tasks.TASKS)
     ax.set_xlim([-20,20])
     ax.legend((rects_wall, rects_snr), ('Wall', 'SNR'))
-    for i in range(len(experiments)):
+    for i in range(len(researchdata1258.Tasks.TASKS)):
         s = " (p={:.3f})".format(pval[i])
         if (pval[i] < 0.05):
             s = s + "*"
         xpos = max([wall_mean[i],snr_mean[i]]) + 1
         ax.text(xpos, i + .25, s, color='blue', fontweight='bold')
 
-doStats(4,35)
-
-doStats(8,18)
+doStats()
 
 plt.show()
