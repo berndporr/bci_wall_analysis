@@ -71,12 +71,12 @@ def doStats(EEGsignal_min_f=False,EEGsignal_max_f=False):
 
     
 
-helptext = 'usage: {} -w -n -h'.format(sys.argv[0])
+helptext = 'usage: {} -w -n -a -h'.format(sys.argv[0])
 
 try:
     # Gather the arguments
     all_args = sys.argv[1:]
-    opts, arg = getopt.getopt(all_args, 'nwh')
+    opts, arg = getopt.getopt(all_args, 'anwh')
     # Iterate over the options and values
     for opt, arg_val in opts:
         if '-w' in opt:
@@ -85,6 +85,10 @@ try:
             sys.exit(0)
         elif '-n' in opt:
             doStats(8,18)
+            plt.show()
+            sys.exit(0)
+        elif '-a' in opt:
+            doStats(8,12)
             plt.show()
             sys.exit(0)
         elif '-h' in opt:
