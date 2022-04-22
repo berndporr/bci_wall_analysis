@@ -24,7 +24,6 @@ class Tasks:
         
         self.ch1 = self.data[:,7]
         self.ch2 = self.data[:,8]
-        self.t = np.linspace(0,len(self.ch1)/self.Fs,len(self.ch1))
 
         # Remove DC
         bHigh,aHigh = signal.butter(4,1/self.Fs*2,'high')
@@ -56,6 +55,7 @@ class Tasks:
 
         self.ch1 = self.ch1[a:-1]
         self.ch2 = self.ch2[a:-1]
+        self.t = np.linspace(0,len(self.ch1)/self.Fs,len(self.ch1))
 
 
 class Evoked_potentials:

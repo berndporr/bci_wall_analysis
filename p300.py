@@ -24,11 +24,11 @@ if __name__ == "__main__":
             elif '-s' in opt:
                 startsec = int(arg_val)
             elif '-h' in opt:
-                raise getopt.GetoptError()
+                raise getopt.GetoptError(helptext)
             else:
-                raise getopt.GetoptError()
-    except getopt.GetoptError:
-        print (helptext)
+                raise getopt.GetoptError(helptext)
+    except getopt.GetoptError as err:
+        print (err)
         sys.exit(2)
 
     ep = researchdata1258.Evoked_potentials(subj,startsec)

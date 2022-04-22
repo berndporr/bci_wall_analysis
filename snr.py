@@ -37,7 +37,8 @@ class SNR:
             ep = researchdata1258.Evoked_potentials(self.subj)
             t,p300 = ep.get_averaged_ep()
             p300peak = p300[int(ep.Fs*VEPstartTime):int(ep.Fs*VEPendTime)]
-            return np.median(p300peak**2)
+            idx = np.argmax(p300peak)
+            return p300peak[idx]**2
 
     def calcSNR(self,band_low=False,band_high=False):
         NoisePwr = self.calcNoisePower()
@@ -73,11 +74,11 @@ if __name__ == "__main__":
             elif '-t' in opt:
                 task = arg_val
             elif '-h' in opt:
-                raise getopt.GetoptError()
+                raise getopt.GetoptError(helptext)
             else:
-                raise getopt.GetoptError()
-    except getopt.GetoptError:
-        print (helptext)
+                raise getopt.GetoptError(helptext)
+    except getopt.GetoptError as err:
+        print (err)
         sys.exit(2)
 
     snr = SNR(subj,task,minF=a,maxF=b)

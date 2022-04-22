@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import getopt
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
 from scipy import signal
 import researchdata1258
 
@@ -17,11 +15,12 @@ if __name__ == "__main__":
     usePlotly = True
 
     helptext = 'usage: {} -p participant -s startsec -e endsec -f noiseredfile.tsv -t task -m -h'.format(sys.argv[0])
+    helptext = helptext + "\nOption -m switches over to matplotlib. Default is plotly."
 
     try:
         # Gather the arguments
         all_args = sys.argv[1:]
-        opts, arg = getopt.getopt(all_args, 'p:s:e:f:t:m')
+        opts, arg = getopt.getopt(all_args, 'p:s:e:f:t:mh')
         # Iterate over the options and values
         for opt, arg_val in opts:
             if '-p' in opt:
@@ -32,18 +31,24 @@ if __name__ == "__main__":
                 endsec = int(arg_val)
             elif '-t' in opt:
                 task = arg_val
-            elif '-m' in opt:
-                usePlotly = False
             elif '-h' in opt:
-                raise getopt.GetoptError()
+                raise getopt.GetoptError(helptext)
             else:
-                raise getopt.GetoptError()
-    except getopt.GetoptError:
-        print (helptext)
-        print ("Option -m switches over to matplotlib. Default is plotly.")
+                raise getopt.GetoptError(helptext)
+    except getopt.GetoptError as err:
+        print (err)
         sys.exit(2)
 
     data = researchdata1258.Tasks(subj,task,startsec,endsec)
 
+    plt.figure("Timedomain: {} {}".format(subj,task))
+    plt.xlabel("time/sec")
+    plt.ylabel("EEG/V")
     plt.plot(data.t,data.ch1)
+    plt.figure("Spectrum: {} {}".format(subj,task))
+    plt.xlabel("Frequency/Hz")
+    plt.ylabel("Power/V")
+    fx, fy = signal.periodogram(data.ch1,data.Fs,scaling="spectrum",nfft=data.Fs*2)
+    plt.xlim([0,100])
+    plt.plot(fx,fy)
     plt.show()
