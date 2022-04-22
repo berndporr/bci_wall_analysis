@@ -10,6 +10,7 @@ import researchdata1258
 
 VEPstartTime = 0.35 # sec
 VEPendTime = 0.45 # sec
+SlidingWindowSize = 2 # sec
 
 class NoiseWall:
     class NoiseWallException(Exception):
@@ -27,7 +28,7 @@ class NoiseWall:
     def calcRho(self):
         task = researchdata1258.Tasks(self.subj,self.task,band_low=self.minF,band_high=self.maxF)
         y = task.ch1
-        winSize = 1000
+        winSize = SlidingWindowSize * task.Fs
         self.noiseVarMin = 1E10
         self.noiseVarMax = -1E10
         for i in range(len(y)-winSize-1):

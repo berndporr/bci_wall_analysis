@@ -15,6 +15,10 @@ import getopt
 subjectsOK = [1,3,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
 
 def doStats(EEGsignal_min_f=False,EEGsignal_max_f=False):
+    if EEGsignal_min_f or EEGsignal_max_f:
+        print("Stats with min_f={}, max_f={}:".format(EEGsignal_min_f,EEGsignal_max_f))
+    else:
+        print("Stats with the full frequency range:")
     wall_mean=[]
     wall_stddev=[]
     snr_mean=[]
@@ -72,11 +76,15 @@ def doStats(EEGsignal_min_f=False,EEGsignal_max_f=False):
     
 
 helptext = 'usage: {} -w -n -a -h'.format(sys.argv[0])
+helptext = helptext + "\n  -w: 4..35 Hz"
+helptext = helptext + "\n  -n: 8..18 Hz"
+helptext = helptext + "\n  -a: 8..12 Hz"
+helptext = helptext + "\n  -l: 1..20 Hz"
 
 try:
     # Gather the arguments
     all_args = sys.argv[1:]
-    opts, arg = getopt.getopt(all_args, 'anwh')
+    opts, arg = getopt.getopt(all_args, 'anwhl')
     # Iterate over the options and values
     for opt, arg_val in opts:
         if '-w' in opt:
@@ -87,16 +95,20 @@ try:
             doStats(8,18)
             plt.show()
             sys.exit(0)
+        elif '-l' in opt:
+            doStats(1,20)
+            plt.show()
+            sys.exit(0)
         elif '-a' in opt:
             doStats(8,12)
             plt.show()
             sys.exit(0)
         elif '-h' in opt:
-            raise getopt.GetoptError()
+            raise getopt.GetoptError(helptext)
         else:
-            raise getopt.GetoptError()
-except getopt.GetoptError:
-    print (helptext)
+            raise getopt.GetoptError(helptext)
+except getopt.GetoptError as err:
+    print (err)
     sys.exit(2)
 
 doStats()
