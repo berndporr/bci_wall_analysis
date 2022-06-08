@@ -19,11 +19,7 @@ class SNR:
         self.startsec = startsec
         self.minF = minF
         self.maxF = maxF
-        if minF and maxF:
-            print("Using ParalysedEEG")
-        else:
-            print("Using P300")
-    
+
     def calcNoisePower(self):
         task = researchdata1258.Tasks(self.subj,self.task,band_low=self.minF,band_high=self.maxF)
         y = task.ch1
@@ -31,9 +27,11 @@ class SNR:
 
     def calcSignalPower(self):
         if self.minF and self.maxF:
+            print("Power from paralysed EEG")
             pe = paralysedeeg.ParalysedEEG(self.minF,self.maxF)
             return pe.getPureEEGVar()
         else:
+            print("Power from P300")
             ep = researchdata1258.Evoked_potentials(self.subj)
             t,p300 = ep.get_averaged_ep()
             p300peak = p300[int(ep.Fs*VEPstartTime):int(ep.Fs*VEPendTime)]
@@ -55,7 +53,7 @@ if __name__ == "__main__":
     a = False
     b = False
 
-    helptext = 'usage: {} -p participant -s startsec -t task -h'.format(sys.argv[0])
+    helptext = 'usage: {} -p participant -s startsec -t task -a [min Hz] -b [max Hz] -h'.format(sys.argv[0])
 
     try:
         # Gather the arguments

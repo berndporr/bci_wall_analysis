@@ -58,7 +58,7 @@ if __name__ == "__main__":
     minF = False
     maxF = False
 
-    helptext = 'usage: {} -p participant -s startsec -t task -h'.format(sys.argv[0])
+    helptext = 'usage: {} -p participant -s startsec -t task -a [min Hz] -b [max Hz] -h'.format(sys.argv[0])
 
     try:
         # Gather the arguments
