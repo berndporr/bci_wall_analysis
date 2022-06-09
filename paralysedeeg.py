@@ -30,3 +30,6 @@ class ParalysedEEG:
         self.pureEEGVar = self.pureEEGVar + self.readParalysedEEGVarianceFromWhithamEtAl("sub2c.dat")
         self.pureEEGVar = self.pureEEGVar / 6.0
         return self.pureEEGVar
+
+    def getPureEEGVolage(self):
+        return np.sqrt(this.getPureEEGVar())

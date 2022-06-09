@@ -12,6 +12,8 @@ import paralysedeeg
 VEPstartTime = 0.35 # sec
 VEPendTime = 0.45 # sec
 
+
+
 class SNR:
     def __init__(self,subj,task,startsec=False,minF=False,maxF=False):
         self.subj = subj
@@ -25,18 +27,25 @@ class SNR:
         y = task.ch1
         return np.var(y)
 
+    def calcP300power(self):
+        ep = researchdata1258.Evoked_potentials(self.subj)
+        t,p300 = ep.get_averaged_ep()
+        p300peak = p300[int(ep.Fs*VEPstartTime):int(ep.Fs*VEPendTime)]
+        idx = np.argmax(p300peak)
+        return p300peak[idx]**2        
+
     def calcSignalPower(self):
         if self.minF and self.maxF:
             print("Power from paralysed EEG")
+            peeeg1_10 = paralysedeeg.ParalysedEEG(1,10)
+            power1_10 = peeeg1_10.getPureEEGVar()
+            corr = self.calcP300power() / power1_10
+            print("p300 / power_paralysed1-10Hz =",corr)
             pe = paralysedeeg.ParalysedEEG(self.minF,self.maxF)
-            return pe.getPureEEGVar()
+            return (pe.getPureEEGVar()) * corr
         else:
             print("Power from P300")
-            ep = researchdata1258.Evoked_potentials(self.subj)
-            t,p300 = ep.get_averaged_ep()
-            p300peak = p300[int(ep.Fs*VEPstartTime):int(ep.Fs*VEPendTime)]
-            idx = np.argmax(p300peak)
-            return p300peak[idx]**2
+            return self.calcP300power()
 
     def calcSNR(self,band_low=False,band_high=False):
         NoisePwr = self.calcNoisePower()

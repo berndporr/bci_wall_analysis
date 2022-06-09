@@ -4,7 +4,7 @@ import numpy as np
 import sys
 import getopt
 import researchdata1258
-
+from scipy import signal
 
 # check if we run this as a main program
 if __name__ == "__main__":
@@ -37,4 +37,9 @@ if __name__ == "__main__":
     plt.plot(t,avg)
     plt.xlabel("t/ms")
     plt.ylabel("P300/uV")
+    f, Pxx_den = signal.periodogram(avg,ep.Fs)
+    plt.figure("P300 spectrum")
+    plt.plot(f,Pxx_den)
+    plt.xlabel("f/Hz")
+    plt.ylabel("P/V**2")
     plt.show()
