@@ -12,7 +12,7 @@ import paralysedeeg
 VEPstartTime = 0.35 # sec
 VEPendTime = 0.45 # sec
 
-
+desyncPowerReductionPercent = 75 # percent
 
 class SNR:
     def __init__(self,subj,task,startsec=False,minF=False,maxF=False):
@@ -37,12 +37,8 @@ class SNR:
     def calcSignalPower(self):
         if self.minF and self.maxF:
             print("Power from paralysed EEG")
-            peeeg1_10 = paralysedeeg.ParalysedEEG(1,10)
-            power1_10 = peeeg1_10.getPureEEGVar()
-            corr = self.calcP300power() / power1_10
-            print("p300 / power_paralysed1-10Hz =",corr)
             pe = paralysedeeg.ParalysedEEG(self.minF,self.maxF)
-            return (pe.getPureEEGVar()) * corr
+            return (pe.getPureEEGVar()) * (100-desyncPowerReductionPercent)/100
         else:
             print("Power from P300")
             return self.calcP300power()
@@ -50,8 +46,8 @@ class SNR:
     def calcSNR(self,band_low=False,band_high=False):
         NoisePwr = self.calcNoisePower()
         SignalPwr = self.calcSignalPower()
-        print("Signal Power = {}, Amplitude = {}uV".format(SignalPwr,(SignalPwr**0.5)*1E6))
-        print("NoisePwr:",NoisePwr)
+        print("Signal Power = {} V^2, Amplitude = {} uV".format(SignalPwr,(SignalPwr**0.5)*1E6))
+        print("Noise Power =",NoisePwr,"V^2")
         self.snrvalue = np.log10(SignalPwr/NoisePwr)*10
 
     
