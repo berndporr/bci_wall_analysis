@@ -12,7 +12,6 @@ if __name__ == "__main__":
     startsec = 60
     endsec = False
     task = researchdata1258.Tasks.TASKS[0]
-    usePlotly = True
 
     helptext = 'usage: {} -p participant -s startsec -e endsec -f noiseredfile.tsv -t task -m -h'.format(sys.argv[0])
     helptext = helptext + "\nOption -m switches over to matplotlib. Default is plotly."
@@ -43,12 +42,12 @@ if __name__ == "__main__":
 
     plt.figure("Timedomain: {} {}".format(subj,task))
     plt.xlabel("time/sec")
-    plt.ylabel("EEG/V")
-    plt.plot(data.t,data.ch1)
+    plt.ylabel("EEG/uV")
+    plt.plot(data.t,data.ch1 * 1E6)
     plt.figure("Spectrum: {} {}".format(subj,task))
     plt.xlabel("Frequency/Hz")
-    plt.ylabel("Power/V")
-    fx, fy = signal.periodogram(data.ch1,data.Fs,scaling="spectrum",nfft=data.Fs*2)
+    plt.ylabel("Power/V^2")
+    fx, fy = signal.periodogram(data.ch1,data.Fs,scaling="spectrum",nfft=data.Fs)
     plt.xlim([0,100])
     plt.plot(fx,fy)
     plt.show()
