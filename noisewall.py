@@ -37,7 +37,7 @@ class NoiseWall:
                 self.noiseVarMax = v
             if (v < self.noiseVarMin) and (v > 0):
                 self.noiseVarMin = v
-        print(self.noiseVarMin,self.noiseVarMax)
+        print("Noisevar: min = {}, max = {}".format(self.noiseVarMin,self.noiseVarMax))
         self.rho = np.sqrt( self.noiseVarMax / self.noiseVarMin )
 
     # Calculates the noise wall in decibel

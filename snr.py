@@ -12,7 +12,7 @@ import paralysedeeg
 VEPstartTime = 0.35 # sec
 VEPendTime = 0.45 # sec
 
-desyncPowerReductionPercent = 75 # percent
+desyncPowerReductionPercent = 50 # percent
 
 class SNR:
     def __init__(self,subj,task,startsec=False,minF=False,maxF=False):
@@ -36,9 +36,7 @@ class SNR:
 
     def calcSignalPower(self):
         if self.minF and self.maxF:
-            print("Power from paralysed EEG")
-            pe = paralysedeeg.ParalysedEEG(self.minF,self.maxF)
-            return (pe.getPureEEGVar()) * (100-desyncPowerReductionPercent)/100
+            return self.calcP300power() * (100-desyncPowerReductionPercent)/100
         else:
             print("Power from P300")
             return self.calcP300power()
