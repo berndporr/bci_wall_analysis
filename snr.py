@@ -7,12 +7,11 @@ import scipy.signal as signal
 import getopt
 import os
 import researchdata1258
-import paralysedeeg
 
 VEPstartTime = 0.35 # sec
 VEPendTime = 0.45 # sec
 
-desyncPowerReductionPercent = 50 # percent
+desyncPowerReductionPercent = 40 # percent
 
 class SNR:
     def __init__(self,subj,task,startsec=False,minF=False,maxF=False):
@@ -36,7 +35,12 @@ class SNR:
 
     def calcSignalPower(self):
         if self.minF and self.maxF:
-            return self.calcP300power() * (100-desyncPowerReductionPercent)/100
+            p300full = self.calcP300power()
+            p300reduced = p300full * (100-desyncPowerReductionPercent)/100
+            pSignal = p300full - p300reduced
+            print("Conscious {}% reduction (or boost) of power (desync): {} - {} = {}"
+                  .format(desyncPowerReductionPercent,p300full,p300reduced,pSignal))
+            return pSignal
         else:
             print("Power from P300")
             return self.calcP300power()
@@ -84,4 +88,4 @@ if __name__ == "__main__":
 
     snr = SNR(subj,task,minF=a,maxF=b)
     snr.calcSNR()
-    print("Subject: {}, Task: {}, SNR= {}dB".format(subj,task,snr.snrvalue))
+    print("Subject: {}, Task: {}, SNR= {} dB".format(subj,task,snr.snrvalue))
