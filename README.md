@@ -58,3 +58,8 @@ Additional pre-set parameters for the frequency bands:
  -  -a: 8..12 Hz
  -  -l: 1..20 Hz
 Default is full range (engery detector)
+
+# Credits
+
+Bernd Porr
+Lucía Muñoz Bohollo
