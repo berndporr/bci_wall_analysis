@@ -6,7 +6,7 @@ import math as math
 from scipy.interpolate import interp1d
 import scipy.stats as stats
 import researchdata1258
-import noisewall
+import bci_wall
 import snr
 import sys
 import getopt
@@ -31,7 +31,7 @@ def doStats(EEGsignal_min_f=False,EEGsignal_max_f=False):
         snr_tmp = []
         for subj in subjectsOK:
             print(e,subj,":")
-            noiseWall = noisewall.NoiseWall(subj,e)
+            noiseWall = bci_wall.NoiseWall(subj,e)
             noiseWall.calcNoiseWall()
             wall_tmp.append(noiseWall.SNRwall)
             s = snr.SNR(subj,e,minF=EEGsignal_min_f,maxF=EEGsignal_max_f)

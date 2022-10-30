@@ -1,6 +1,6 @@
-# Noise walls
+# BCI-walls
 
-These scripts calculate the SNr and the noise walls
+These scripts calculate the SNr and the SNR-walls
 
 ## Dataset
 
