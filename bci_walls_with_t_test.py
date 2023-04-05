@@ -31,7 +31,7 @@ def doStats(EEGsignal_min_f=False,EEGsignal_max_f=False):
         snr_tmp = []
         for subj in subjectsOK:
             print(e,subj,":")
-            noiseWall = bci_wall.NoiseWall(subj,e)
+            noiseWall = bci_wall.NoiseWall(subj,e,minF=EEGsignal_min_f,maxF=EEGsignal_max_f)
             noiseWall.calcNoiseWall()
             wall_tmp.append(noiseWall.SNRwall)
             s = snr.SNR(subj,e,minF=EEGsignal_min_f,maxF=EEGsignal_max_f)
@@ -75,34 +75,38 @@ def doStats(EEGsignal_min_f=False,EEGsignal_max_f=False):
 
     
 
-helptext = 'usage: {} -w -n -a -h'.format(sys.argv[0])
-helptext = helptext + "\n  -w: 4..35 Hz"
-helptext = helptext + "\n  -n: 8..18 Hz"
-helptext = helptext + "\n  -a: 8..12 Hz"
-helptext = helptext + "\n  -l: 1..20 Hz"
+helptext = 'usage: {} -m -n -e -d -a lowF -b highF'.format(sys.argv[0])
+helptext = helptext + "\n  -m: 8-18 Hz"
+helptext = helptext + "\n  -n: 8-12 Hz"
+helptext = helptext + "\n  -e: 0.1-3 Hz"
+helptext = helptext + "\n  -d: 1st order highpass"
+
+minF = False
+maxF = False
 
 try:
     # Gather the arguments
     all_args = sys.argv[1:]
-    opts, arg = getopt.getopt(all_args, 'anwhl')
+    opts, arg = getopt.getopt(all_args, 'a:b:mnedh')
     # Iterate over the options and values
     for opt, arg_val in opts:
-        if '-w' in opt:
-            doStats(4,35)
-            plt.show()
-            sys.exit(0)
+        if '-m' in opt:
+            minF = 8
+            maxF = 18
         elif '-n' in opt:
-            doStats(8,18)
-            plt.show()
-            sys.exit(0)
-        elif '-l' in opt:
-            doStats(1,20)
-            plt.show()
-            sys.exit(0)
-        elif '-a' in opt:
             doStats(8,12)
             plt.show()
             sys.exit(0)
+        elif '-e' in opt:
+            minF = 0.1
+            maxF = 3
+        elif '-d' in opt:
+            minF = -1
+            maxF = -1
+        elif '-a' in opt:
+            minF = float(arg_val)
+        elif '-b' in opt:
+            maxF = float(arg_val)
         elif '-h' in opt:
             raise getopt.GetoptError(helptext)
         else:
@@ -111,5 +115,5 @@ except getopt.GetoptError as err:
     print (err)
     sys.exit(2)
 
-doStats()
+doStats(minF,maxF)
 plt.show()

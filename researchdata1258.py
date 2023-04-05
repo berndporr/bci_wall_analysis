@@ -25,11 +25,6 @@ class Tasks:
         self.ch1 = self.data[:,7]
         self.ch2 = self.data[:,8]
 
-        # Remove DC
-        bHigh,aHigh = signal.butter(4,1/self.Fs*2,'high')
-        self.ch1 = signal.lfilter(bHigh,aHigh,self.ch1);
-        self.ch2 = signal.lfilter(bHigh,aHigh,self.ch2);
-        
         # Remove 50Hz noise
         b50,a50 = signal.butter(4,[48/self.Fs*2,52/self.Fs*2],'stop')
         self.ch1 = signal.lfilter(b50,a50,self.ch1);
@@ -40,18 +35,35 @@ class Tasks:
         self.ch1 = signal.lfilter(b150,a150,self.ch1);
         self.ch2 = signal.lfilter(b150,a150,self.ch2);
 
-        ## do we just look at a specific band?
         if (band_high) and (band_low):
-            bfiltbp,afiltbp = signal.butter(4,[band_low/self.Fs*2,band_high/self.Fs*2],'bandpass')
-            self.ch1 = signal.lfilter(bfiltbp,afiltbp,self.ch1)
-            self.ch2 = signal.lfilter(bfiltbp,afiltbp,self.ch2)
-            
+            if (band_high > 0) and (band_low > 0):
+                order = 4
+                if band_low < 1:
+                    order = 2
+                bfiltbp,afiltbp = signal.butter(order,[band_low/self.Fs*2,band_high/self.Fs*2],'bandpass')
+                print("Bandpass filtering: {}-{}Hz.".format(band_low,band_high))
+                self.ch1 = signal.lfilter(bfiltbp,afiltbp,self.ch1)
+                self.ch2 = signal.lfilter(bfiltbp,afiltbp,self.ch2)
+            else:
+                print("Applying the derivative to the signal.")
+                self.ch1 = np.diff(self.ch1)
+                self.ch2 = np.diff(self.ch2)
+        else:
+            # Remove DC
+            bHigh,aHigh = signal.butter(2,0.1/self.Fs*2,'high')
+            self.ch1 = signal.lfilter(bHigh,aHigh,self.ch1);
+            self.ch2 = signal.lfilter(bHigh,aHigh,self.ch2);
+
         self.startsec = startsec
         if startsec:
             a = startsec * self.Fs
         else:
-            # 5 sec
-            a = 5 * self.Fs
+            if band_low < 0.2:
+                print(band_low)
+                a = int(self.Fs / band_low)
+            else:
+                # 5 sec
+                a = int(5 * self.Fs)
 
         self.ch1 = self.ch1[a:-1]
         self.ch2 = self.ch2[a:-1]

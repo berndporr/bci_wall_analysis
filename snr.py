@@ -73,9 +73,9 @@ if __name__ == "__main__":
             elif '-s' in opt:
                 startsec = int(arg_val)
             elif '-a' in opt:
-                a = int(arg_val)
+                a = float(arg_val)
             elif '-b' in opt:
-                b = int(arg_val)
+                b = float(arg_val)
             elif '-t' in opt:
                 task = arg_val
             elif '-h' in opt:
