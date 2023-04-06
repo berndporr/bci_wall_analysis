@@ -2,7 +2,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
-import p300
 import scipy.signal as signal
 import getopt
 import os
