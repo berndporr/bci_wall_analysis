@@ -73,7 +73,7 @@ class Evoked_potentials:
     Fs = 250
     HPfc = 0.5
         
-    def __init__(self,_participant,startsec=False):
+    def __init__(self,_participant):
         """
         Loads the P300 or VEP of one Participant.
         _participant is the integer number of the participant
@@ -88,16 +88,15 @@ class Evoked_potentials:
         self.participant = _participant
         fullpath = "../gla_researchdata_1258/EEG_recordings/participant{:03d}/rawp300.tsv".format(self.participant)
         self.data = np.loadtxt(fullpath)
-        self.startsec = startsec
         self.eeg = self.data[:,0]
         self.oddball_flags = self.data[:,2]
         self.oddball_samples = np.argwhere(self.oddball_flags > 0.5)
-        self.initial_samples_to_ignore = 0
 
         # Remove DC
         bHigh,aHigh = signal.butter(2,self.HPfc/self.Fs*2,'high')
         self.eeg = signal.lfilter(bHigh,aHigh,self.eeg);
-        initial_samples_to_ignore = int(self.Fs / self.HPfc) * 3
+        self.initial_samples_to_ignore = int(self.Fs / self.HPfc) * 3
+        self.final_samples_to_ignore = int(self.Fs / self.HPfc) * 3
 
         # Remove 50Hz noise
         b50,a50 = signal.butter(4,[48/self.Fs*2,52/self.Fs*2],'stop')
@@ -107,11 +106,7 @@ class Evoked_potentials:
         b100,a100 = signal.butter(4,[98/self.Fs*2,102/self.Fs*2],'stop')
         self.eeg = signal.lfilter(b100,a100,self.eeg);
 
-        if startsec:
-            a = startsec * self.Fs
-        else:
-            a = initial_samples_to_ignore
-        self.egg = self.eeg[a:-1]
+        self.t = np.linspace(0,len(self.eeg)/self.Fs,len(self.eeg))
 
         
     def get_averaged_ep(self):
@@ -125,7 +120,8 @@ class Evoked_potentials:
         
         n = 0
         for [ob] in self.oddball_samples:
-            if ((ob+self.navg) < len(self.eeg)) and (ob > self.initial_samples_to_ignore):
+            if ( ( (ob+self.navg) < (len(self.eeg) - self.final_samples_to_ignore) )
+                 and (ob > self.initial_samples_to_ignore) ):
                 self.avg = self.avg + self.eeg[int(ob):int(ob+self.navg)]
                 n = n + 1
                 
