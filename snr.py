@@ -49,13 +49,13 @@ class SNR:
         NoisePwr = self.calcNoisePower()
         SignalPwr = self.calcSignalPower()
         print("Signal Power = {} V^2, Amplitude = {} uV".format(SignalPwr,(SignalPwr**0.5)*1E6))
-        print("Noise Power =",NoisePwr,"V^2")
+        print("Noise Power = {}V^2, Noise amplitude = {}V".format(NoisePwr,np.sqrt(NoisePwr)))
         self.snrvalue = np.log10(SignalPwr/NoisePwr)*10
 
     
 # check if we run this as a main program
 if __name__ == "__main__":
-    subj = 1
+    subj = 20
     task = researchdata1258.Tasks.TASKS[0]
     a = False
     b = False

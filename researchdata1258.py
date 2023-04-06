@@ -58,8 +58,7 @@ class Tasks:
         if startsec:
             a = startsec * self.Fs
         else:
-            if band_low < 0.2:
-                print(band_low)
+            if band_low and (band_low < 0.2):
                 a = int(self.Fs / band_low)
             else:
                 # 5 sec

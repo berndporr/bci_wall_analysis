@@ -37,7 +37,11 @@ class NoiseWall:
                 self.noiseVarMax = v
             if (v < self.noiseVarMin) and (v > 0):
                 self.noiseVarMin = v
-        print("Noisevar: min = {}, max = {}".format(self.noiseVarMin,self.noiseVarMax))
+        print("Noisevar: min = {}, max = {}.".format(
+            self.noiseVarMin,self.noiseVarMax))
+        print("NoiseStdDev: min = {}, max = {}.".format(
+            np.sqrt(self.noiseVarMin),np.sqrt(self.noiseVarMax)
+        ))
         self.rho = np.sqrt( self.noiseVarMax / self.noiseVarMin )
 
     # Calculates the noise wall in decibel
@@ -53,7 +57,7 @@ class NoiseWall:
     
 # check if we run this as a main program
 if __name__ == "__main__":
-    subj = 1
+    subj = 20
     task = researchdata1258.Tasks.TASKS[0]
     minF = False
     maxF = False

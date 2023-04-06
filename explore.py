@@ -6,7 +6,7 @@ import getopt
 from scipy import signal
 import researchdata1258
 
-subj = 1
+subj = 20
 startsec = 60
 endsec = False
 task = False
@@ -36,25 +36,30 @@ except getopt.GetoptError as err:
     print (err)
     sys.exit(2)
 
-fig, axs = plt.subplots(len(researchdata1258.Tasks.TASKS), 2,sharex='col')
-
-def plotTask(r,tn):
+def plotTask(r,tn,axs):
     data = researchdata1258.Tasks(subj,tn,startsec,endsec)
-    fx, fy = signal.periodogram(data.ch1,data.Fs,scaling="spectrum",nfft=(data.Fs*10))
+    fx, fy = signal.periodogram(data.ch1,data.Fs,scaling="spectrum",nfft=int(data.Fs*10))
     axs[r,0].set_xlabel("time/sec")
     axs[r,0].set_ylabel("{}\nEEG/uV".format(tn))
-    axs[r,0].set_ylim([-300,300])
+    if researchdata1258.Tasks.TASKS[0] in tn:
+        axs[r,0].set_ylim([-1000,1000])
+    else:
+        axs[r,0].set_ylim([-200,200])
     axs[r,0].set_xlim([0,60])
     axs[r,0].plot(data.t,data.ch1 * 1E6)
     axs[r,1].set_xlabel("F/Hz")
     axs[r,1].set_ylabel("P/1E10 V^2")
     axs[r,1].set_xlim([0,100])
-    axs[r,1].set_ylim([1E-14,1E-10])
+    axs[r,1].set_ylim([1E-15,1E-10])
     axs[r,1].semilogy(fx,fy)
-    
 
-for t in range(len(researchdata1258.Tasks.TASKS)):
-    tn = researchdata1258.Tasks.TASKS[t]
-    plotTask(t,tn)
-    
+if task:
+    fig, axs = plt.subplots(1, 2, squeeze=False)
+    plotTask(0,task,axs)
+else:
+    fig, axs = plt.subplots(len(researchdata1258.Tasks.TASKS), 2,sharex='col')
+    for t in range(len(researchdata1258.Tasks.TASKS)):
+        tn = researchdata1258.Tasks.TASKS[t]
+        plotTask(t,tn,axs)
+
 plt.show()
