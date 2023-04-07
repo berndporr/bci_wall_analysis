@@ -35,34 +35,39 @@ class Tasks:
         self.ch1 = signal.lfilter(b150,a150,self.ch1);
         self.ch2 = signal.lfilter(b150,a150,self.ch2);
 
-        if (band_high) and (band_low):
-            if (band_high > 0) and (band_low > 0):
-                order = 4
-                if band_low < 1:
-                    order = 2
-                bfiltbp,afiltbp = signal.butter(order,[band_low/self.Fs*2,band_high/self.Fs*2],'bandpass')
-                print("Bandpass filtering: {}-{}Hz.".format(band_low,band_high))
-                self.ch1 = signal.lfilter(bfiltbp,afiltbp,self.ch1)
-                self.ch2 = signal.lfilter(bfiltbp,afiltbp,self.ch2)
-            else:
-                print("Applying the derivative to the signal.")
-                self.ch1 = np.diff(self.ch1)
-                self.ch2 = np.diff(self.ch2)
+        self.startsec = startsec
+        a = int(5 * self.Fs)
+
+        if (band_low < 0) or (band_low < 0):
+            print("Applying the derivative to the signal.")
+            self.ch1 = np.diff(self.ch1)
+            self.ch2 = np.diff(self.ch2)
         else:
-            # Remove DC
-            bHigh,aHigh = signal.butter(2,0.1/self.Fs*2,'high')
+            # Low frequ cutoff
+            if not band_low:
+                lf = 0.1
+                a = int(self.Fs / lf) * 2
+            else:
+                lf = band_low
+                if (band_low > 0):
+                    a = int(self.Fs / band_low * 2)
+            bHigh,aHigh = signal.butter(4,lf/self.Fs*2,'high')
             self.ch1 = signal.lfilter(bHigh,aHigh,self.ch1);
             self.ch2 = signal.lfilter(bHigh,aHigh,self.ch2);
 
-        self.startsec = startsec
-        if startsec:
-            a = startsec * self.Fs
-        else:
-            if band_low and (band_low < 0.2):
-                a = int(self.Fs / band_low)
-            else:
-                # 5 sec
-                a = int(5 * self.Fs)
+            # high cutoff
+            hf = 'inf'
+            if band_high:
+                hf = band_high
+                bfiltbp,afiltbp = signal.butter(4,band_high/self.Fs*2,'low')
+                self.ch1 = signal.lfilter(bfiltbp,afiltbp,self.ch1)
+                self.ch2 = signal.lfilter(bfiltbp,afiltbp,self.ch2)
+
+            print("Bandpass filtering: {}-{} Hz.".format(lf,hf))
+
+        print("SS=",startsec)
+        if (startsec):
+            a = int(startsec * self.Fs)
 
         self.ch1 = self.ch1[a:-1]
         self.ch2 = self.ch2[a:-1]

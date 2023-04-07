@@ -21,11 +21,12 @@ class NoiseWall:
         self.startsec = startsec
         self.minF = minF
         self.maxF = maxF
+        self.startsec = startsec
     
     # Calculates the noise uncertainty as the ratio between the
     # min variance and the max variance.
     def calcRho(self):
-        task = researchdata1258.Tasks(self.subj,self.task,band_low=self.minF,band_high=self.maxF)
+        task = researchdata1258.Tasks(self.subj,self.task,band_low=self.minF,band_high=self.maxF,startsec=self.startsec)
         y = task.ch1
         winSize = SlidingWindowSize * task.Fs
         self.noiseVarMin = 1E10
@@ -74,9 +75,9 @@ if __name__ == "__main__":
             elif '-s' in opt:
                 startsec = int(arg_val)
             elif '-a' in opt:
-                minF = int(arg_val)
+                minF = float(arg_val)
             elif '-b' in opt:
-                maxF = int(arg_val)
+                maxF = float(arg_val)
             elif '-t' in opt:
                 task = arg_val
             elif '-h' in opt:

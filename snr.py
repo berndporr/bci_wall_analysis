@@ -21,7 +21,7 @@ class SNR:
         self.maxF = maxF
 
     def calcNoisePower(self):
-        task = researchdata1258.Tasks(self.subj,self.task,band_low=self.minF,band_high=self.maxF)
+        task = researchdata1258.Tasks(self.subj,self.task,startsec=self.startsec,band_low=self.minF,band_high=self.maxF)
         y = task.ch1
         return np.var(y)
 

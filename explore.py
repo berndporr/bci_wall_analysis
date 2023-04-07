@@ -11,7 +11,7 @@ startsec = 60
 endsec = False
 task = False
 
-helptext = 'usage: {} -p participant -s startsec -e endsec -f noiseredfile.tsv -t task -m -h'.format(sys.argv[0])
+helptext = 'usage: {} -p participant -s startsec -f noiseredfile.tsv -t task -m -h'.format(sys.argv[0])
 helptext = helptext + "\nOption -m switches over to matplotlib. Default is plotly."
 
 try:
@@ -23,9 +23,7 @@ try:
         if '-p' in opt:
             subj = int(arg_val)
         elif '-s' in opt:
-            startsec = int(arg_val)
-        elif '-e' in opt:
-            endsec = int(arg_val)
+            startsec = float(arg_val)
         elif '-t' in opt:
             task = arg_val
         elif '-h' in opt:
@@ -37,7 +35,7 @@ except getopt.GetoptError as err:
     sys.exit(2)
 
 def plotTask(r,tn,axs):
-    data = researchdata1258.Tasks(subj,tn,startsec,endsec)
+    data = researchdata1258.Tasks(subj,tn,startsec)
     fx, fy = signal.periodogram(data.ch1,data.Fs,scaling="spectrum",nfft=int(data.Fs*10))
     axs[r,0].set_xlabel("time/sec")
     axs[r,0].set_ylabel("{}\nEEG/uV".format(tn))

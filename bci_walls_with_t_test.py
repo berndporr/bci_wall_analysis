@@ -14,6 +14,8 @@ import getopt
 
 subjectsOK = [1,3,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
 
+startsec = 30
+
 def doStats(EEGsignal_min_f=False,EEGsignal_max_f=False):
     if EEGsignal_min_f or EEGsignal_max_f:
         print("Stats with min_f={}, max_f={}:".format(EEGsignal_min_f,EEGsignal_max_f))
@@ -31,10 +33,10 @@ def doStats(EEGsignal_min_f=False,EEGsignal_max_f=False):
         snr_tmp = []
         for subj in subjectsOK:
             print(e,subj,":")
-            noiseWall = bci_wall.NoiseWall(subj,e,minF=EEGsignal_min_f,maxF=EEGsignal_max_f)
+            noiseWall = bci_wall.NoiseWall(subj,e,startsec=startsec,minF=EEGsignal_min_f,maxF=EEGsignal_max_f)
             noiseWall.calcNoiseWall()
             wall_tmp.append(noiseWall.SNRwall)
-            s = snr.SNR(subj,e,minF=EEGsignal_min_f,maxF=EEGsignal_max_f)
+            s = snr.SNR(subj,e,startsec=startsec,minF=EEGsignal_min_f,maxF=EEGsignal_max_f)
             s.calcSNR()
             snr_tmp.append(s.snrvalue)
             print("Wall = {}, SNR = {}.".format(noiseWall.SNRwall,s.snrvalue))
@@ -94,9 +96,8 @@ try:
             minF = 8
             maxF = 18
         elif '-n' in opt:
-            doStats(8,12)
-            plt.show()
-            sys.exit(0)
+            minF = 8
+            maxF = 12
         elif '-e' in opt:
             minF = 0.1
             maxF = 3

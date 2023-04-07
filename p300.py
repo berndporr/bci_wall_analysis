@@ -39,7 +39,7 @@ axs[0].set_ylim([-200,200])
 axs[0].plot(ep.t[ep.initial_samples_to_ignore:-ep.final_samples_to_ignore],
             ep.eeg[ep.initial_samples_to_ignore:-ep.final_samples_to_ignore] * 1E6, label="EEG")
 axs[0].plot(ep.oddball_samples/ep.Fs,np.ones(len(ep.oddball_samples))*100,"|",
-            label="oddballl events")
+            label="oddball events")
 axs[0].legend()
 
 t,avg = ep.get_averaged_ep()
