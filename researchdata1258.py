@@ -65,9 +65,10 @@ class Tasks:
 
             print("Bandpass filtering: {}-{} Hz.".format(lf,hf))
 
-        print("SS=",startsec)
         if (startsec):
             a = int(startsec * self.Fs)
+
+        print("Analysis from {}sec.".format(a // self.Fs))
 
         self.ch1 = self.ch1[a:-1]
         self.ch2 = self.ch2[a:-1]

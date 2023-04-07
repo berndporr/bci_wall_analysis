@@ -42,6 +42,8 @@ def plotTask(r,axs,minF,maxF):
     noisewall = bci_wall.NoiseWall(subj,task,startsec=startsec,minF=minF,maxF=maxF)
     noisewall.calcNoiseWall()
     snr = SNR(subj,task,startsec=startsec,minF=minF,maxF=maxF)
+    snr.calcSNR()
+    print("Wall = {}, SNR = {}.".format(noisewall.SNRwall,snr.snrvalue))
     tn = "no filter"
     if minF and maxF:
         if (minF < 0) and (maxF < 0):
@@ -51,18 +53,13 @@ def plotTask(r,axs,minF,maxF):
     fx, fy = signal.periodogram(data.ch1,data.Fs,scaling="spectrum",nfft=int(data.Fs*10))
     axs[r,0].set_xlabel("time/sec")
     axs[r,0].set_ylabel("{}\nEEG/uV".format(tn))
-#    if researchdata1258.Tasks.TASKS[0] in tn:
-#        axs[r,0].set_ylim([-1000,1000])
-#    else:
-#        axs[r,0].set_ylim([-200,200])
     noiseMin = np.ones(len(data.ch1))*np.sqrt(noisewall.noiseVarMin)
     noiseMax = np.ones(len(data.ch1))*np.sqrt(noisewall.noiseVarMax)
-    noiseSD = np.ones(len(data.ch1))*np.sqrt(snr.calcNoisePower())
     axs[r,0].set_xlim([0,60])
     axs[r,0].plot(data.t,data.ch1 * 1E6)
-    axs[r,0].plot(data.t,noiseMin * 1E6)
-    axs[r,0].plot(data.t,noiseMax * 1E6)
-    axs[r,0].plot(data.t,noiseSD * 1E6)
+    axs[r,0].plot(data.t,noiseMin * 1E6, label="max", linestyle='-')
+    axs[r,0].plot(data.t,noiseMax * 1E6, label="min", linestyle='--')
+    axs[r,0].legend()
     axs[r,1].set_xlabel("F/Hz")
     axs[r,1].set_ylabel("P/1E10 V^2")
     axs[r,1].set_xlim([0,100])
@@ -79,5 +76,30 @@ franges = [
 fig, axs = plt.subplots(len(franges), 2,sharex='col')
 for fr in range(len(franges)):
     plotTask(fr,axs,franges[fr][0],franges[fr][1])
+
+ep = researchdata1258.Evoked_potentials(subj)
+
+fig, axs = plt.subplots(1, 2)
+axs[0].set_xlabel("time/sec")
+axs[0].set_ylabel("EEG/uV")
+axs[0].set_ylim([-200,200])
+#axs[0].set_xlim([0,60])
+axs[0].plot(ep.t[ep.initial_samples_to_ignore:-ep.final_samples_to_ignore],
+            ep.eeg[ep.initial_samples_to_ignore:-ep.final_samples_to_ignore] * 1E6, label="EEG")
+axs[0].plot(ep.oddball_samples/ep.Fs,np.ones(len(ep.oddball_samples))*100,"|",
+            label="oddball events")
+axs[0].legend()
+
+t,avg = ep.get_averaged_ep()
+axs[1].plot(t,avg * 1E6)
+axs[1].set_xlabel("t/ms")
+axs[1].set_ylabel("P300/uV")
+snr = SNR(subj,task,startsec=startsec)
+snr.calcSNR()
+signalPwr = snr.calcSignalPower()
+signalAmpl = np.ones(len(t))*np.sqrt(signalPwr)
+axs[1].plot(t,signalAmpl * 1E6)
+
+
 
 plt.show()
