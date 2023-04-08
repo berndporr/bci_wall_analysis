@@ -8,6 +8,7 @@ from scipy import signal
 
 subj = 20
 startsec = 60
+p300daqlatency = 100 # ms
 
 helptext = 'usage: {} -p participant -s startsec -f file -h'.format(sys.argv[0])
 
@@ -43,7 +44,7 @@ axs[0].plot(ep.oddball_samples/ep.Fs,np.ones(len(ep.oddball_samples))*100,"|",
 axs[0].legend()
 
 t,avg = ep.get_averaged_ep()
-axs[1].plot(t,avg * 1E6)
+axs[1].plot(t-p300daqlatency,avg * 1E6)
 axs[1].set_xlabel("t/ms")
 axs[1].set_ylabel("P300/uV")
 

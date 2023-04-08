@@ -12,6 +12,7 @@ subj = 20
 startsec = 60
 endsec = False
 task = 'read'
+p300daqlatency = 100 # ms
 
 helptext = 'usage: {} -p participant -s startsec -e endsec -f noiseredfile.tsv -t task -m -h'.format(sys.argv[0])
 helptext = helptext + "\nOption -m switches over to matplotlib. Default is plotly."
@@ -56,15 +57,17 @@ def plotTask(r,axs,minF,maxF):
     noiseMin = np.ones(len(data.ch1))*np.sqrt(noisewall.noiseVarMin)
     noiseMax = np.ones(len(data.ch1))*np.sqrt(noisewall.noiseVarMax)
     axs[r,0].set_xlim([0,60])
-    axs[r,0].plot(data.t,data.ch1 * 1E6)
-    axs[r,0].plot(data.t,noiseMin * 1E6, label="max", linestyle='-')
-    axs[r,0].plot(data.t,noiseMax * 1E6, label="min", linestyle='--')
+    axs[r,0].plot(data.t,data.ch1 * 1E6, color='blue')
+    axs[r,0].plot(data.t,noiseMin * 1E6, label="\u03C3 min", linestyle='--', linewidth=1, color='orange')
+    axs[r,0].plot(data.t,noiseMax * 1E6, label="\u03C3 max", linestyle='-', linewidth=1, color='red')
+    axs[r,0].plot(data.t,-noiseMin * 1E6, linestyle='--', linewidth=1, color='orange')
+    axs[r,0].plot(data.t,-noiseMax * 1E6, linestyle='-', linewidth=1, color='red')
     axs[r,0].legend()
     axs[r,1].set_xlabel("F/Hz")
     axs[r,1].set_ylabel("P/1E10 V^2")
     axs[r,1].set_xlim([0,100])
     axs[r,1].set_ylim([1E-15,1E-10])
-    axs[r,1].semilogy(fx,fy)
+    axs[r,1].semilogy(fx,fy,color='blue')
 
 franges = [
     [False,False],
@@ -74,32 +77,32 @@ franges = [
 ]
 
 fig, axs = plt.subplots(len(franges), 2,sharex='col')
+fig.suptitle("Task: "+task)
 for fr in range(len(franges)):
     plotTask(fr,axs,franges[fr][0],franges[fr][1])
 
 ep = researchdata1258.Evoked_potentials(subj)
 
 fig, axs = plt.subplots(1, 2)
+fig.suptitle("Task: "+task)
 axs[0].set_xlabel("time/sec")
 axs[0].set_ylabel("EEG/uV")
 axs[0].set_ylim([-200,200])
 #axs[0].set_xlim([0,60])
 axs[0].plot(ep.t[ep.initial_samples_to_ignore:-ep.final_samples_to_ignore],
-            ep.eeg[ep.initial_samples_to_ignore:-ep.final_samples_to_ignore] * 1E6, label="EEG")
+            ep.eeg[ep.initial_samples_to_ignore:-ep.final_samples_to_ignore] * 1E6, label="EEG", color='blue')
 axs[0].plot(ep.oddball_samples/ep.Fs,np.ones(len(ep.oddball_samples))*100,"|",
-            label="oddball events")
+            label="oddball events", color='orange')
 axs[0].legend()
 
 t,avg = ep.get_averaged_ep()
-axs[1].plot(t,avg * 1E6)
+axs[1].plot(t-p300daqlatency,avg * 1E6, color='blue')
 axs[1].set_xlabel("t/ms")
 axs[1].set_ylabel("P300/uV")
 snr = SNR(subj,task,startsec=startsec)
 snr.calcSNR()
 signalPwr = snr.calcSignalPower()
 signalAmpl = np.ones(len(t))*np.sqrt(signalPwr)
-axs[1].plot(t,signalAmpl * 1E6)
-
-
+axs[1].plot(t,signalAmpl * 1E6, color='blue')
 
 plt.show()
