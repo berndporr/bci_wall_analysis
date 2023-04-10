@@ -30,27 +30,27 @@ All python commandline tools have the same parameters:
 
 All parameters are optional and have default values set.
 
-## explore.py
+## `explore.py`
 
 Plots the data in the timedomain and frequency domain of one subject and for all tasks (or one task if specified).
 
-## snr.py
+## `snr.py`
 
 Calculates the signal to noise ratio from one subject doing one task. It can be used both as a module and main program.
 
-## p300.py
+## `p300.py`
 
 Plots the signal power of the P300 peak which is used in the SNR calculations.
 
-## noise_wall.py
+## `noise_wall.py`
 
 Calculates the SNR-wall. It can be used both as a module and main program.
 
-## bci_wall_one_subj_analysis.py
+## `bci_wall_one_subj_analysis.py`
 
 Calculates the SNR-walls and SNRs for one subject.
 
-## bci_walls_with_t_test.py
+## `bci_walls_with_t_test.py`
 
 Calculates all SNR and SNR-wall values for all task over all subjects and
 performs t-tests if it is significantly possible to detect conscious EEG changes.
@@ -64,6 +64,11 @@ Pre-set parameters for the frequency bands:
 
 Alternatively, set the frequency range yourself:
  - -a [minF] -b [maxF] frequency band when detecting bandlimited events (default: full spectrum)
+
+## `do_all_stats.sh`
+
+Runs five `bci_walls_with_t_test.py` scripts for all pre-set parameters in separate
+processes.
 
 # Credits
 
