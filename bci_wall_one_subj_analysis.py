@@ -5,7 +5,7 @@ import sys
 import getopt
 from scipy import signal
 import researchdata1258
-import bci_wall
+import noise_wall
 from snr import SNR
 
 subj = 20
@@ -40,11 +40,11 @@ except getopt.GetoptError as err:
 def plotTask(r,axs,minF,maxF):
     print("\nTask:",task)
     data = researchdata1258.Tasks(subj,task,startsec=startsec,band_low=minF,band_high=maxF)
-    noisewall = bci_wall.NoiseWall(subj,task,startsec=startsec,minF=minF,maxF=maxF)
+    noisewall = noise_wall.NoiseWall(subj,task,startsec=startsec,minF=minF,maxF=maxF)
     noisewall.calcNoiseWall()
     snr = SNR(subj,task,startsec=startsec,minF=minF,maxF=maxF)
     snr.calcSNR()
-    print("Wall = {}, SNR = {}.".format(noisewall.SNRwall,snr.snrvalue))
+    print("rho = {}, Wall = {}dB, SNR = {}dB.".format(noisewall.rho,noisewall.SNRwall,snr.snrvalue))
     tn = "no filter"
     if minF and maxF:
         if (minF < 0) and (maxF < 0):
@@ -68,15 +68,20 @@ def plotTask(r,axs,minF,maxF):
     axs[r,1].set_xlim([0,100])
     axs[r,1].set_ylim([1E-15,1E-10])
     axs[r,1].semilogy(fx,fy,color='blue')
+    mindB = -20
+    axs[r,2].bar(["SNR_wall","SNR"],[noisewall.SNRwall+20,snr.snrvalue-mindB],bottom=mindB)
+    axs[r,2].set_ylim([mindB,20])
+    axs[r,2].set_ylabel("dB")
 
 franges = [
     [False,False],
     [0.1,3],
     [8,18],
+    [8,12],
     [-1,-1]
 ]
 
-fig, axs = plt.subplots(len(franges), 2,sharex='col')
+fig, axs = plt.subplots(len(franges),3,sharex='col',gridspec_kw={'width_ratios': [4, 1, 1]})
 fig.suptitle("Task: "+task)
 for fr in range(len(franges)):
     plotTask(fr,axs,franges[fr][0],franges[fr][1])
