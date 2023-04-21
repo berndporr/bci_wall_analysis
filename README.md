@@ -2,6 +2,8 @@
 
 These scripts calculate SNR and the SNR-walls of EEG
 
+[![DOI](https://zenodo.org/badge/146623395.svg)](https://zenodo.org/badge/latestdoi/146623395)
+
 ## Dataset
 
 Download the dataset from https://researchdata.gla.ac.uk/1258/
